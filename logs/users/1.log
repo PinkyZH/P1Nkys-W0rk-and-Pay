@@ -1,0 +1,39 @@
+2025-10-19 23:05:53,097 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-19 23:09:31,902 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-19 23:41:54,683 {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
+2025-10-19 23:45:04,190 {"action": "absence.decide", "meta": {"request_id": 2, "approve": true}}
+2025-10-19 23:46:37,195 {"action": "absence.decide", "meta": {"request_id": 4, "approve": true}}
+2025-10-19 23:56:25,225 {"action": "absence.decide", "meta": {"request_id": 4, "approve": true}}
+2025-10-19 23:56:28,699 {"action": "absence.decide", "meta": {"request_id": 3, "approve": true}}
+2025-10-19 23:56:30,482 {"action": "absence.decide", "meta": {"request_id": 2, "approve": true}}
+2025-10-19 23:56:32,021 {"action": "absence.decide", "meta": {"request_id": 3, "approve": true}}
+2025-10-20 00:04:13,252 {"action": "absence.decide", "meta": {"request_id": 4, "approve": true}}
+2025-10-20 00:04:14,703 {"action": "absence.decide", "meta": {"request_id": 3, "approve": true}}
+2025-10-20 00:04:16,006 {"action": "absence.decide", "meta": {"request_id": 2, "approve": true}}
+2025-10-20 00:04:17,270 {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
+2025-10-20 00:36:04,049 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "from": "2025-10", "to": "2025-11"}}
+2025-10-20 00:36:09,095 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "from": "2025-10", "to": "2025-11"}}
+2025-10-20 00:49:53,016 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "from": "2025-10", "to": "2025-10"}}
+2025-10-20 00:50:02,643 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "from": "2025-10", "to": "2025-10"}}
+2025-10-20 17:59:48,068 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-20 18:58:47,914 {"action": "payroll.lock", "meta": {"user_id": 1, "from": "2025-10-01", "to": "2025-10-31", "locked_month": "2025-10"}}
+2025-10-20 18:59:13,785 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-20_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-20 18:59:55,311 {"action": "payroll.unlock", "meta": {"user_id": 1, "from": "2025-10-01", "to": "2025-12-31", "unlocked_month": "2025-10", "reason": ""}}
+2025-10-21 19:08:11,411 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-21 19:08:17,998 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-21 19:08:20,494 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-11-30.xlsx"}}
+2025-10-21 19:08:30,032 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-21 19:22:29,591 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-21 20:56:38,840 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-21 20:57:57,927 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-21 21:41:45,253 {"action": "payroll.lock", "meta": {"user_id": 1, "from": "2025-10-01", "to": "2025-10-31", "locked_month": "2025-10"}}
+2025-10-21 21:57:46,968 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-21 22:36:47,657 {"action": "absence.decide", "meta": {"request_id": 5, "approve": true}}
+2025-10-21 22:42:12,447 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-21 22:42:15,060 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-11-30.xlsx"}}
+2025-10-21 22:42:18,591 {"action": "payroll.unlock", "meta": {"user_id": 1, "from": "2025-10-01", "to": "2025-11-30", "unlocked_month": "2025-10", "reason": ""}}
+2025-10-21 22:42:36,428 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-21 23:11:17,036 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-21 23:33:03,940 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-22 00:00:51,290 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-22 20:07:53,026 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-22_von_2025-10-01_bis_2025-11-30.pdf"}}

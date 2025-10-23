@@ -1,0 +1,13 @@
+{
+  "hourly_brutto": 22.65,
+  "vac_pct": 10.64,
+  "holiday_pct": 3.59,
+  "thirteenth_pct": 8.33,
+  "expenses_per_hour": 2.0,
+  "ahv_pct": 6.4,
+  "nbu_pct": 2.25,
+  "ktg_pct": 1.5,
+  "bvg_pct": 0.0,
+  "lgav_fixed_monthly": 20.0,
+  "weekly_hours": 41.0
+}

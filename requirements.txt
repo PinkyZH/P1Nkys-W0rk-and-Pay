@@ -1,0 +1,19 @@
+# P1Nky$ W0rk & P@y — v2.4
+# Core GUI & DB
+PySide6>=6.6
+SQLAlchemy>=2.0
+argon2-cffi>=21.3.0
+Babel>=2.12
+python-dateutil>=2.8
+Pillow>=10.0
+
+black>=24.4
+flake8>=7.0
+mypy>=1.11
+pytest>=8.3
+
+# Exports (PDF/Excel)
+reportlab>=4.0
+openpyxl>=3.1
+
+matplotlib

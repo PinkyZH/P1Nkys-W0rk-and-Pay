@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "rules": {
+    "NIGHT": {
+      "enabled": true,
+      "percent": 25.0,
+      "from_time": "16:30",
+      "to_time": "06:00",
+      "to_next_day": true
+    },
+    "WEEKEND": {
+      "enabled": true,
+      "percent": 50.0
+    },
+    "HOLIDAY": {
+      "enabled": true,
+      "percent": 100.0
+    }
+  }
+}
