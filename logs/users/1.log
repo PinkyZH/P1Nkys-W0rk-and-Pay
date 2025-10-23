@@ -37,3 +37,6 @@
 2025-10-21 23:33:03,940 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-21_von_2025-10-01_bis_2025-10-31.pdf"}}
 2025-10-22 00:00:51,290 {"action": "profile.save", "meta": {"changed": true}}
 2025-10-22 20:07:53,026 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-22_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-23 21:58:16,868 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-23 21:59:18,366 {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
+2025-10-23 21:59:24,671 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}

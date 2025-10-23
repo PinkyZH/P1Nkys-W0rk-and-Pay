@@ -441,3 +441,20 @@
 2025-10-23 19:18:37,313 INFO workpay: App gestartet (v?)
 2025-10-23 19:29:50,342 INFO workpay: App gestartet (v?)
 2025-10-23 19:43:45,784 INFO workpay: App gestartet (v?)
+2025-10-23 20:31:08,880 INFO workpay: App gestartet (v?)
+2025-10-23 20:53:00,704 INFO workpay: App gestartet (v?)
+2025-10-23 20:53:23,545 INFO workpay: App gestartet (v?)
+2025-10-23 20:53:58,354 INFO workpay: App gestartet (v?)
+2025-10-23 21:32:16,938 INFO workpay: App gestartet (v?)
+2025-10-23 21:57:27,762 INFO workpay: App gestartet (v?)
+2025-10-23 21:58:16,868 INFO workpay.user.1: {"action": "profile.save", "meta": {"changed": true}}
+2025-10-23 21:59:18,366 INFO workpay.user.1: {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
+2025-10-23 21:59:24,671 INFO workpay.user.1: {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-23 22:01:17,533 INFO workpay: App gestartet (v?)
+2025-10-23 22:24:29,439 INFO workpay: App gestartet (v?)
+2025-10-23 22:31:43,706 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-10-23 22:31:43,706 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-10-23 22:32:21,973 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-10-23 22:32:21,973 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-10-23 22:33:01,078 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-10-23 22:33:01,078 INFO matplotlib.category: Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
