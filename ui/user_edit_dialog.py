@@ -9,6 +9,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from languages import tr, LANG
 from core.models import User, UserProfile
+from PySide6.QtWidgets import QLayout
+from core.utils.i18n import t as _t
+
+def T(key: str, lang: str, fallback: str) -> str:
+    """Übersetze key; wenn die Sprache den key nicht kennt, nimm fallback."""
+    v = _t(key, lang)
+    return v if v != key else fallback
 
 class UserEditDialog(QDialog):
     """
@@ -21,101 +28,139 @@ class UserEditDialog(QDialog):
         self.session_factory = session_factory
         self.user_id = user_id
         self.lang = lang
-        self.setWindowTitle(tr("admin_edit.title", self.lang))
+        self.setWindowTitle(tr("admin_users.title", self.lang) if tr("admin_users.title", self.lang) != "admin_users.title" else "Benutzerverwaltung")
         self.setSizeGripEnabled(True)
         self._avatar_tmp: Optional[str] = None
         self._build()
         self._load()
         self.adjustSize()
+        self.setSizeGripEnabled(True)  # manuelles Resizing bleibt möglich
+        self.resize(max(self.sizeHint().width(), 1484),  # mind. ~980px Startbreite
+                    self.sizeHint().height())
 
     def _build(self):
         root = QVBoxLayout(self)
-        grid = QGridLayout(); root.addLayout(grid)
+        grid = QGridLayout()
+        root.addLayout(grid)
 
-        # Spalte 1 – Benutzer
-        box_user = QGroupBox("Benutzerdaten")
+        # ---------------- Spalte 1 – Benutzer ----------------
+        box_user = QGroupBox(T("admin_edit.group_user", self.lang, "Benutzerdaten"))
         f1 = QFormLayout(box_user)
-        self.ed_username = QLineEdit()
-        self.cb_role = QComboBox(); self.cb_role.addItems(["USER","HR","ADMIN"])
-        self.cb_active = QCheckBox(tr("admin_edit.active", self.lang))
-        self.btn_avatar_choose = QPushButton(tr("profile.choose_file", self.lang))
-        self.btn_avatar_remove = QPushButton(tr("profile.remove", self.lang))
 
-        self.ed_first = QLineEdit(); self.ed_last = QLineEdit()
-        self.date_birthday = QDateEdit(); self.date_birthday.setCalendarPopup(True)
+        self.ed_username = QLineEdit()
+        self.cb_role = QComboBox()
+        self.cb_role.addItems(["USER", "HR", "ADMIN"])
+
+        # Checkbox bekommt ihren Text selbst; links im FormLayout kein Label
+        self.cb_active = QCheckBox(T("admin_edit.active", self.lang, "Aktiv"))
+
+        self.btn_avatar_choose = QPushButton(T("profile.choose_file", self.lang, "Datei wählen"))
+        self.btn_avatar_remove = QPushButton(T("profile.remove", self.lang, "Entfernen"))
+
+        self.ed_first = QLineEdit()
+        self.ed_last = QLineEdit()
+        self.date_birthday = QDateEdit()
+        self.date_birthday.setCalendarPopup(True)
+
         self.cb_civil = QComboBox()
-        cmap = LANG.get(self.lang, LANG["de"]).get("choices", {}).get("civil_status", {
-            "single":"Ledig","married":"Verheiratet","separated":"Getrennt","divorced":"Geschieden","widowed":"Verwitwet"
-        })
-        for key, label in cmap.items(): self.cb_civil.addItem(label, key)
+        cmap = LANG.get(self.lang, LANG["de"]).get("choices", {}).get(
+            "civil_status",
+            {"single": "Ledig", "married": "Verheiratet", "separated": "Getrennt", "divorced": "Geschieden",
+             "widowed": "Verwitwet"}
+        )
+        for key, label in cmap.items():
+            self.cb_civil.addItem(label, key)
+
         self.ed_permit = QLineEdit()
         self.ed_ahv = QLineEdit()  # AHV-Nr.
 
-        f1.addRow(tr("admin_users.username", self.lang), self.ed_username)
-        f1.addRow(tr("admin_edit.role", self.lang), self.cb_role)
-        f1.addRow(tr("admin_edit.active", self.lang), self.cb_active)
-        f1.addRow(tr("profile.avatar", self.lang) if tr("profile.avatar", self.lang) != "profile.avatar" else "Avatar", self.btn_avatar_choose)
+        f1.addRow(T("admin_users.username", self.lang, "Benutzername"), self.ed_username)
+        f1.addRow(T("admin_edit.role", self.lang, "Rolle"), self.cb_role)
+        f1.addRow("", self.cb_active)  # <— kein linkes Label mehr
+        f1.addRow(T("profile.avatar", self.lang, "Avatar"), self.btn_avatar_choose)
         f1.addRow("", self.btn_avatar_remove)
-        f1.addRow(tr("admin_users.first_name", self.lang), self.ed_first)
-        f1.addRow(tr("admin_users.last_name", self.lang), self.ed_last)
-        f1.addRow(tr("admin_users.birthday", self.lang), self.date_birthday)
-        f1.addRow(tr("profile.civil_status", self.lang), self.cb_civil)
-        f1.addRow(tr("profile.permit_status", self.lang), self.ed_permit)
-        f1.addRow(tr("profile.ahv_number", self.lang) if tr("profile.ahv_number", self.lang) != "profile.ahv_number" else "AHV-Nr.", self.ed_ahv)
+        f1.addRow(T("admin_users.first_name", self.lang, "Vorname"), self.ed_first)
+        f1.addRow(T("admin_users.last_name", self.lang, "Nachname"), self.ed_last)
+        f1.addRow(T("admin_users.birthday", self.lang, "Geburtstag"), self.date_birthday)
+        f1.addRow(T("profile.civil_status", self.lang, "Zivilstand"), self.cb_civil)
+        f1.addRow(T("profile.permit_status", self.lang, "Aufenthaltsstatus"), self.ed_permit)
+        f1.addRow(T("profile.ahv_number", self.lang, "AHV-Nr."), self.ed_ahv)
         grid.addWidget(box_user, 0, 0)
 
-        # Spalte 2 – Adresse
-        box_addr = QGroupBox("Adresse & Kontakt")
+        # ---------------- Spalte 2 – Adresse & Kontakt ----------------
+        box_addr = QGroupBox(T("admin_edit.group_contact", self.lang, "Adresse  Kontakt"))
         f2 = QFormLayout(box_addr)
-        self.combo_locale = QComboBox(); self.combo_locale.addItems(["de","en","sr"])
-        self.ed_region = QLineEdit(); self.ed_address = QLineEdit()
-        self.ed_postcode = QLineEdit(); self.ed_city = QLineEdit()
-        self.ed_email = QLineEdit(); self.ed_phone = QLineEdit()
-        f2.addRow(tr("profile.locale", self.lang), self.combo_locale)
-        f2.addRow(tr("profile.region_code", self.lang), self.ed_region)
-        f2.addRow(tr("profile.address", self.lang), self.ed_address)
-        f2.addRow(tr("profile.postcode", self.lang), self.ed_postcode)
-        f2.addRow(tr("profile.city", self.lang), self.ed_city)
-        f2.addRow(tr("profile.email", self.lang), self.ed_email)
-        f2.addRow(tr("profile.phone", self.lang), self.ed_phone)
+        self.combo_locale = QComboBox()
+        self.combo_locale.addItems(["de", "en", "sr"])
+        self.ed_region = QLineEdit()
+        self.ed_address = QLineEdit()
+        self.ed_postcode = QLineEdit()
+        self.ed_city = QLineEdit()
+        self.ed_email = QLineEdit()
+        self.ed_phone = QLineEdit()
+
+        f2.addRow(T("profile.locale", self.lang, "Sprache"), self.combo_locale)
+        f2.addRow(T("profile.region_code", self.lang, "Region/Kanton"), self.ed_region)
+        f2.addRow(T("profile.address", self.lang, "Adresse"), self.ed_address)
+        f2.addRow(T("profile.postcode", self.lang, "Postleitzahl"), self.ed_postcode)
+        f2.addRow(T("profile.city", self.lang, "Ort"), self.ed_city)
+        f2.addRow(T("profile.email", self.lang, "E-Mail"), self.ed_email)
+        f2.addRow(T("profile.phone", self.lang, "Telefon"), self.ed_phone)
         grid.addWidget(box_addr, 0, 1)
 
-        # Spalte 3 – Bank & Lohn
-        box_bank = QGroupBox("Bank & Lohn")
+        # ---------------- Spalte 3 – Bank & Lohn ----------------
+        box_bank = QGroupBox(T("admin_edit.group_wage", self.lang, "Bank  Lohn"))
         f3 = QFormLayout(box_bank)
-        self.ed_bank_name = QLineEdit(); self.ed_bank_addr = QLineEdit()
-        self.ed_bank_zip = QLineEdit(); self.ed_bank_city = QLineEdit(); self.ed_bank_country = QLineEdit()
-        self.ed_account_no = QLineEdit(); self.ed_iban = QLineEdit()
-        self.sp_hourly = QDoubleSpinBox(); self.sp_hourly.setRange(0, 1000); self.sp_hourly.setDecimals(2)
-        f3.addRow(tr("profile.bank_name", self.lang), self.ed_bank_name)
-        f3.addRow(tr("profile.bank_address", self.lang), self.ed_bank_addr)
-        f3.addRow(tr("profile.bank_zip", self.lang), self.ed_bank_zip)
-        f3.addRow(tr("profile.bank_city", self.lang), self.ed_bank_city)
-        f3.addRow(tr("profile.bank_country", self.lang), self.ed_bank_country)
-        f3.addRow(tr("profile.account_number", self.lang), self.ed_account_no)
-        f3.addRow(tr("profile.iban", self.lang), self.ed_iban)
-        f3.addRow(tr("profile.hourly_wage", self.lang) if tr("profile.hourly_wage", self.lang) != "profile.hourly_wage" else "Stundenlohn", self.sp_hourly)
+        self.ed_bank_name = QLineEdit()
+        self.ed_bank_addr = QLineEdit()
+        self.ed_bank_zip = QLineEdit()
+        self.ed_bank_city = QLineEdit()
+        self.ed_bank_country = QLineEdit()
+        self.ed_account_no = QLineEdit()
+        self.ed_iban = QLineEdit()
+
+        self.sp_hourly = QDoubleSpinBox()
+        self.sp_hourly.setRange(0, 1000)
+        self.sp_hourly.setDecimals(2)
+
+        f3.addRow(T("profile.bank_name", self.lang, "Name der Bank"), self.ed_bank_name)
+        f3.addRow(T("profile.bank_address", self.lang, "Adresse der Bank"), self.ed_bank_addr)
+        f3.addRow(T("profile.bank_zip", self.lang, "Postleitzahl der Bank"), self.ed_bank_zip)
+        f3.addRow(T("profile.bank_city", self.lang, "Ort der Bank"), self.ed_bank_city)
+        f3.addRow(T("profile.bank_country", self.lang, "Land der Bank"), self.ed_bank_country)
+        f3.addRow(T("profile.account_number", self.lang, "Kontonummer"), self.ed_account_no)
+        f3.addRow(T("profile.iban", self.lang, "IBAN"), self.ed_iban)
+        f3.addRow(T("profile.hourly_wage", self.lang, "Stundenlohn"), self.sp_hourly)
         grid.addWidget(box_bank, 0, 2)
 
-        # Spalte 4 – Anstellung
-        box_emp = QGroupBox("Anstellung")
+        # ---------------- Spalte 4 – Anstellung ----------------
+        box_emp = QGroupBox(T("admin_edit.group_employment", self.lang, "Anstellung"))
         f4 = QFormLayout(box_emp)
-        self.ed_emp_id = QLineEdit()     # Mitarbeiter-ID
-        self.ed_emp_code = QLineEdit()   # Kürzel
-        self.ed_employer = QLineEdit()   # Arbeitgeber
-        self.date_employed = QDateEdit(); self.date_employed.setCalendarPopup(True)
-        f4.addRow(tr("profile.employee_id", self.lang) if tr("profile.employee_id", self.lang) != "profile.employee_id" else "Mitarbeiter-ID", self.ed_emp_id)
-        f4.addRow(tr("profile.employee_code", self.lang) if tr("profile.employee_code", self.lang) != "profile.employee_code" else "Kürzel", self.ed_emp_code)
-        f4.addRow(tr("profile.employer", self.lang) if tr("profile.employer", self.lang) != "profile.employer" else "Arbeitgeber", self.ed_employer)
-        f4.addRow(tr("profile.employment_start", self.lang) if tr("profile.employment_start", self.lang) != "profile.employment_start" else "Eintrittsdatum", self.date_employed)
+        self.ed_emp_id = QLineEdit()
+        self.ed_emp_code = QLineEdit()
+        self.ed_employer = QLineEdit()
+        self.date_employed = QDateEdit()
+        self.date_employed.setCalendarPopup(True)
+
+        f4.addRow(T("profile.employee_id", self.lang, "Mitarbeiter-ID"), self.ed_emp_id)
+        f4.addRow(T("profile.employee_code", self.lang, "Kürzel"), self.ed_emp_code)
+        f4.addRow(T("profile.employer", self.lang, "Arbeitgeber"), self.ed_employer)
+        f4.addRow(T("profile.employment_start", self.lang, "Eintrittsdatum"), self.date_employed)
         grid.addWidget(box_emp, 0, 3)
 
-        # Buttons
+        # ---------------- Buttons ----------------
         row = QHBoxLayout()
-        btn_save = QPushButton(tr("admin_edit.save", self.lang)); btn_cancel = QPushButton(tr("admin_edit.cancel", self.lang))
-        row.addStretch(1); row.addWidget(btn_save); row.addWidget(btn_cancel); root.addLayout(row)
-        btn_save.clicked.connect(self._save); btn_cancel.clicked.connect(self.reject)
-        self.btn_avatar_choose.clicked.connect(self._choose_avatar); self.btn_avatar_remove.clicked.connect(self._remove_avatar)
+        btn_save = QPushButton(T("admin_edit.save", self.lang, "Speichern"))
+        btn_cancel = QPushButton(T("admin_edit.cancel", self.lang, "Abbrechen"))
+        row.addStretch(1)
+        row.addWidget(btn_save)
+        row.addWidget(btn_cancel)
+        root.addLayout(row)
+
+        btn_save.clicked.connect(self._save)
+        btn_cancel.clicked.connect(self.reject)
+        self.btn_avatar_choose.clicked.connect(self._choose_avatar)
+        self.btn_avatar_remove.clicked.connect(self._remove_avatar)
 
     def _choose_avatar(self):
         fn, _ = QFileDialog.getOpenFileName(self, tr("profile.choose_file", self.lang), "", "Images (*.png *.jpg *.jpeg)")
@@ -203,5 +248,13 @@ class UserEditDialog(QDialog):
             de = self.date_employed.date(); p.employment_start = de.toPython() if de and de.isValid() else None
 
             s.commit()
-        QMessageBox.information(self, tr("admin_edit.title", self.lang), tr("profile.saved", self.lang))
+
+        QMessageBox.information(
+            self,
+            tr("admin_users.title", self.lang) if tr("admin_users.title",
+                                                     self.lang) != "admin_users.title" else "Benutzerverwaltung",
+            tr("dialogs.common.saved", self.lang) if tr("dialogs.common.saved",
+                                                        self.lang) != "dialogs.common.saved" else "Gespeichert."
+        )
+
         self.accept()

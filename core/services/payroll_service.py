@@ -118,24 +118,35 @@ def get_or_create_run(session: Session, user_id: int, year: int, month: int) -> 
 
 def recalc_and_save(session: Session, user_id: int, year: int, month: int) -> PayrollRun:
     run = get_or_create_run(session, user_id, year, month)
-    if run.is_locked: return run
-    data = compute_month(session, user_id, year, month)
-    # SICK: 80% von 8h pro Eintrag
-    sick_entries = [e for e in entries if (e.entry_type or "").upper() == "SICK"]
-    if sick_entries:
-        gross_hr, net_hr = _effective_hour_rates(session, user_id)  # -> (brutto pro Std, netto pro Std)
-        sick_gross = 0.80 * 8.0 * gross_hr * len(sick_entries)
-        sick_net = 0.80 * 8.0 * net_hr * len(sick_entries)
-        gross_total += sick_gross
-        net_total += sick_net
+    if run.is_locked:
+        return run
 
-    run.hours_total   = data["hours_total"]
-    run.entries_count = data["entries_count"]
-    run.gross_total   = data["gross_total"]
-    run.net_total     = data["net_total"]
-    run.type_breakdown_json = json.dumps(data["type_breakdown"], ensure_ascii=False)
+    # Monat berechnen (Basis + Zuschläge)
+    data = compute_month(session, user_id, year, month)
+
+    gross_total = float(data["gross_total"])
+    net_total   = float(data["net_total"])
+
+    # SICK/ACCIDENT: 80 % von 8 h pro Eintrag zusätzlich vergüten
+    bd = data.get("type_breakdown", {}) or {}
+    sick_cnt     = int((bd.get("SICK")     or {}).get("count", 0))
+    accident_cnt = int((bd.get("ACCIDENT") or {}).get("count", 0))
+    sick_like    = sick_cnt + accident_cnt
+    if sick_like:
+        g_hr, n_hr = _effective_hour_rates(session, user_id)
+        gross_total += 0.80 * 8.0 * g_hr * sick_like
+        net_total   += 0.80 * 8.0 * n_hr * sick_like
+
+    # PayrollRun schreiben
+    run.hours_total   = float(data["hours_total"])
+    run.entries_count = int(data["entries_count"])
+    run.gross_total   = gross_total
+    run.net_total     = net_total
+    run.type_breakdown_json = json.dumps(bd, ensure_ascii=False)
+
     session.commit()
     return run
+
 
 def lock_run(session: Session, user_id: int, year: int, month: int, by_user_id: int) -> PayrollRun:
     run = recalc_and_save(session, user_id, year, month)

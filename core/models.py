@@ -164,13 +164,19 @@ class WorkEntry(Base):
     entry_type = Column(String(20))         # WORK / SICK / VACATION / HOLIDAY / OFF / OTHER ...
     note = Column(String(255))
     location = Column(String(255))
+    hourly_override = Column(Float)  # optionaler Stundenlohn-Override
+    pay_rate_override = Column(Float)  # optional, 1.0=100%, 0.9=90% ... -1 für "Unbezahlt"
 
     __table_args__ = (
         Index("ix_work_entries_user_date", "user_id", "date"),
     )
 
     user = relationship("User", back_populates="work_entries")
-
+    # in class WorkEntry(Base):
+    hourly_override = Column(Float)  # optionaler Std.-Lohn (Override)
+    pay_rate_override = Column(
+        Float)  # Bezahlungs-Override (1.0=100%, 0.0=unbez., -2.0 benutzerdefiniert -> Dialog setzt Wert)
+    overtime_hours = Column(Float)  # explizit erfasste Überstunden (optional)
 
 # -----------------------------
 # PayrollRun (Monatslauf je User)

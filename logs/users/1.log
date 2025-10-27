@@ -40,3 +40,22 @@
 2025-10-23 21:58:16,868 {"action": "profile.save", "meta": {"changed": true}}
 2025-10-23 21:59:18,366 {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
 2025-10-23 21:59:24,671 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-24 00:50:52,081 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-24 01:14:31,767 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-24_von_2025-10-01_bis_2025-11-30.pdf"}}
+2025-10-24 01:14:34,418 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-24_von_2025-10-01_bis_2025-11-30.xlsx"}}
+2025-10-24 01:14:36,281 {"action": "payroll.lock", "meta": {"user_id": 1, "from": "2025-10-01", "to": "2025-11-30", "locked_month": "2025-10"}}
+2025-10-24 01:14:47,897 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-24 10:47:42,706 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-24 10:48:19,153 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-24 10:49:29,391 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_-_erstellt-am-2025-10-24_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-24 11:43:43,112 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_-_erstellt-am-2025-10-24_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-24 11:44:27,374 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-24 23:37:35,726 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_-_erstellt-am-2025-10-24_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-26 20:10:18,664 {"action": "profile.save", "meta": {"changed": true}}
+2025-10-26 20:12:18,830 {"action": "backup.create", "meta": {"file": "E:\\9.0.0.0 PROJEKTE\\0. DEV - PYTHON\\PycharmProjects\\x WorkPay - P1Nky$ W0rk & P@y\\backup.zip"}}
+2025-10-27 07:30:49,979 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-27_von_2025-10-01_bis_2025-10-31.pdf"}}
+2025-10-27 07:31:33,968 {"action": "absence.decide", "meta": {"request_id": 1, "approve": true}}
+2025-10-27 07:37:38,864 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-27_von_2025-09-01_bis_2025-10-31.pdf"}}
+2025-10-27 20:41:32,765 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-27_von_2025-09-01_bis_2025-10-31.pdf"}}
+2025-10-27 21:12:38,116 {"action": "payroll.export_xlsx", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-27_von_2025-09-01_bis_2025-10-31.xlsx"}}
+2025-10-27 21:12:42,032 {"action": "payroll.export_pdf", "meta": {"user_id": 1, "file": "E:/9.0.0.0 PROJEKTE/0. DEV - PYTHON/PycharmProjects/x WorkPay - P1Nky$ W0rk & P@y/Abrechnung_Gasic-Simo_erstellt-am-2025-10-27_von_2025-09-01_bis_2025-10-31.pdf"}}

@@ -11,7 +11,6 @@ from sqlalchemy.orm import sessionmaker
 # Regeln laden/speichern
 from core.services.rules_service import current_rules, save_rules, is_enabled
 
-
 class RulesDialog(QDialog):
     """
     Zuschlagsregeln:
@@ -127,15 +126,18 @@ class RulesDialog(QDialog):
 
     # --------------- Actions ---------------
     def _update_overtime_duration(self):
-        """
-        Berechnet Dauer (h) aus von/bis.
-        - Ist 'nächster Tag' aktiv, rechnen wir über Mitternacht.
-        - Sonst: wenn bis < von, Checkbox automatisch setzen (kann man wieder ausmachen).
-        """
-        t1 = self.n_from.time()
+        """Berechnet Dauer (h) aus von/bis – ausschließlich abhängig von der Checkbox 'nächster Tag'."""
+        t1 = self.n_from.time();
         t2 = self.n_to.time()
         m1 = t1.hour() * 60 + t1.minute()
         m2 = t2.hour() * 60 + t2.minute()
+
+        if self.chk_nextday.isChecked():
+            dur_min = (m2 - m1) if m2 >= m1 else (24 * 60 - (m1 - m2))
+        else:
+            dur_min = max(0, m2 - m1)
+
+        self.lbl_n_duration.setText(f"{dur_min / 60.0:.2f}")
 
         # Automatik: wenn bis < von und 'nächster Tag' noch nicht aktiv → aktivieren
         if m2 < m1 and not self.chk_nextday.isChecked():

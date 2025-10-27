@@ -22,7 +22,7 @@ LANG = {
             "date":"Datum","start":"Beginn","end":"Ende","break":"Pause (Min)","hours":"Stunden","type":"Typ",
             "note":"Notiz","location":"Ort","totals":"Summen","entries":"Einträge",
             "confirm_delete":"Diesen Eintrag wirklich löschen?",
-            "type_filter":"Typ-Filter","all":"Alle","search":"Suche Notiz/Ort",
+            "type_filter":"Typ-Filter","all":"Alle","search":"Suche Notiz/Ort", "accident":"Unfall",
             "export_pdf":"Export PDF","export_xlsx":"Export Excel"
         },
         "admin_users": {
@@ -32,7 +32,11 @@ LANG = {
             "name":"Name","birthday":"Geburtstag","phone":"Telefon","email":"E-Mail",
             "new":"Neu","edit":"Bearbeiten","delete":"Löschen","refresh":"Aktualisieren",
             "confirm_delete":"Diesen Benutzer wirklich löschen?",
-            "cannot_delete_last_admin":"Der letzte ADMIN kann nicht gelöscht werden."
+            "cannot_delete_last_admin":"Der letzte ADMIN kann nicht gelöscht werden.",
+            "admin_edit.role":   "Rolle",
+            "admin_edit.active": "Aktiv",
+            "admin_edit.save":   "Speichern",
+            "admin_edit.cancel": "Abbrechen"
         },
         "payroll": {
             "title":"Monatsabschluss – Abrechnung",
@@ -333,7 +337,39 @@ LANG["sr"]["rules"].update({
   "next_day": "sledeći dan",
   "next_day_tip": "Ako je uključeno: 'do' je sledećeg dana (preko ponoći)."
 })
+# de
+LANG["de"]["wprev"].update({"month_select":"Monat / Jahr (IST laden)","load_month":"Monat laden"})
+# en
+LANG["en"]["wprev"].update({"month_select":"Month / Year (load CURRENT)","load_month":"Load month"})
+# sr
+LANG["sr"]["wprev"].update({"month_select":"Mesec / Godina (učitaj)","load_month":"Učitaj mesec"})
 
+LANG["de"].setdefault("entry", {})
+LANG["de"]["entry"].update({
+  "pay_override": "Bezahlung",
+  "pay_custom": "Benutzerdefiniert (Faktor 0–2)"
+})
+LANG["de"].setdefault("calendar", {})
+LANG["de"]["calendar"].setdefault("entry_types", {})
+LANG["de"]["calendar"]["entry_types"].update({"accident": "Unfall"})
+
+# de
+LANG["de"]["wprev"].update({
+  "month_select":"Monat/Jahr",
+  "load_month":"Monat laden"
+})
+# de
+LANG["de"].setdefault("admin_users", {})
+LANG["de"]["admin_users"].update({
+  "title":"Benutzerverwaltung","search":"Suche","refresh":"Aktualisieren","new":"Neu",
+  "edit":"Bearbeiten","delete":"Löschen",
+  "username":"Benutzername","role":"Rolle","active":"Aktiv","last_login":"Letzter Login",
+  "locale":"Sprache","first_name":"Vorname","last_name":"Nachname","birthday":"Geburtstag",
+  "phone":"Telefon","email":"E-Mail","new_info":"Bitte Registrierung über den Login verwenden."
+})
+# de (wprev)
+LANG["de"].setdefault("wprev", {})
+LANG["de"]["wprev"].update({"month_select":"Monat/Jahr","load_month":"Monat laden"})
 
 def tr(key: str, lang: str = "de") -> str:
     d = LANG.get(lang, LANG["de"])

@@ -1,0 +1,73 @@
+2025-10-24 11:07:00,277 ERROR Fehler beim Wiederherstellen
+Traceback (most recent call last):
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.IntegrityError: NOT NULL constraint failed: audit_logs.created_at
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\ui\backup_restore_dialog.py", line 57, in _do_restore
+    restore_backup(s, self.db_url, Path(DATA_DIR), Path(path), self.user_id)
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\core\services\backup_service.py", line 67, in restore_backup
+    log_action(session, user_id, "RESTORE", "System", after={"file": str(zip_file)})
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\core\services\audit_service.py", line 22, in log_action
+    session.commit()
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 1311, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 1286, in _prepare_impl
+    self.session.flush()
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4331, in flush
+    self._flush(objects)
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4427, in _flush
+    flush_context.execute()
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "E:\9.0.0.0 PROJEKTE\0. DEV - PYTHON\PycharmProjects\x WorkPay - P1Nky$ W0rk & P@y\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) NOT NULL constraint failed: audit_logs.created_at
+[SQL: INSERT INTO audit_logs (user_id, action, entity, entity_id, before_json, after_json, ip_addr) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at]
+[parameters: (1, 'RESTORE', 'System', None, None, '{"file": "E:\\\\9.0.0.0 PROJEKTE\\\\0. DEV - PYTHON\\\\PycharmProjects\\\\x WorkPay - P1Nky$ W0rk & P@y\\\\.Backup\\\\backup.zip"}', None)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)

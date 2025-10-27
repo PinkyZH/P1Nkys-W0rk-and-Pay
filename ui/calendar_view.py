@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Dict, List
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QPushButton, QDateEdit, QTableWidget,
     QTableWidgetItem, QCalendarWidget, QSplitter, QAbstractItemView, QMessageBox, QLabel, QMenu,
-    QLineEdit, QFileDialog
+    QLineEdit, QFileDialog, QAbstractButton, QAbstractItemView
 )
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QPainter, QBrush, QPen, QColor, QShortcut, QKeySequence
@@ -38,6 +38,7 @@ TYPE_COLORS = {
     "WORK": QColor(66,133,244),
     "VACATION": QColor(52,168,83),
     "SICK": QColor(234,67,53),
+    "ACCIDENT": QColor(234,67,53),
     "HOLIDAY": QColor(251,188,5),
     "OFF": QColor(128,128,128),
     "OTHER": QColor(156,39,176),
@@ -66,6 +67,69 @@ def _analytics_base_name(last: str, first: str, employer: str) -> str:
     from datetime import date as _date
     today = _date.today().strftime("%Y-%m-%d")
     return f"Analytics_{_safe_name(last)}_{_safe_name(first)}_{_safe_name(employer)}_{today}"
+
+# === Helper: Dateiname für Exporte =========================================
+def _sanitize_name(self, s: str) -> str:
+    """Erlaubt nur einfache Zeichen, ersetzt Leerzeichen durch Unterstrich."""
+    import re
+    s = (s or "").strip()
+    s = re.sub(r"\s+", "_", s)
+    s = re.sub(r"[^A-Za-z0-9_.\-äöüÄÖÜß]", "", s)
+    return s or "NA"
+
+def _current_month_year(self):
+    """
+    Liefert (year, month) des aktuell im Kalender angezeigten Monats.
+    Fällt auf 'today' zurück, wenn keine Info vorhanden.
+    """
+    from datetime import date
+    # versuche häufige Feldnamen, die es je nach Version geben kann
+    for attr in ("view_year", "view_month", "cur_year", "cur_month", "g_year", "g_month"):
+        pass
+    try:
+        y = int(getattr(self, "view_year", getattr(self, "cur_year", getattr(self, "g_year", 0))))
+        m = int(getattr(self, "view_month", getattr(self, "cur_month", getattr(self, "g_month", 0))))
+        if y and m:
+            return y, m
+    except Exception:
+        pass
+    today = date.today()
+    return today.year, today.month
+
+def _export_basename(self) -> str:
+    """Baut den Basenamen inkl. Monat + Erstellungsdatum."""
+    from datetime import date
+    y, m = self._current_month_year()
+    created = date.today().isoformat()
+
+    # User-Daten holen
+    last_name = "NA"
+    first_name = "NA"
+    employer = "NA"
+    try:
+        from sqlalchemy import select
+        from core.models import User, UserProfile
+        with self.session_factory() as s:
+            u = s.execute(select(User).where(User.id == self.view_user_id)).scalar_one_or_none()
+            p = s.execute(select(UserProfile).where(UserProfile.user_id == self.view_user_id)).scalar_one_or_none()
+            if p:
+                last_name = p.last_name or last_name
+                first_name = p.first_name or first_name
+                employer = p.employer or employer
+            if u and (last_name == "NA" and first_name == "NA"):
+                # Fallback Name aus Username
+                last_name = self._sanitize_name(u.username)
+    except Exception:
+        pass
+
+    ln = self._sanitize_name(last_name)
+    fn = self._sanitize_name(first_name)
+    em = self._sanitize_name(employer)
+
+    # „Monat_10-2025“ (bewusst schlicht, robust für FS)
+    month_token = f"Monat_{m:02d}-{y}"
+
+    return f"Cal-Export_{ln}_{fn}_{em}_{month_token}_Erstellt_am_{created}"
 
 # ---- Sortierbare Items ----
 class DateItem(QTableWidgetItem):
@@ -462,7 +526,8 @@ class CalendarMainWidget(QWidget):
         self.table.setHorizontalHeaderLabels(headers)
 
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         hdr = self.table.horizontalHeader()
         hdr.setStretchLastSection(False)  # wir steuern selbst
@@ -681,7 +746,7 @@ class CalendarMainWidget(QWidget):
         gross_total, net_total = self._period_wages(hours_sum_filtered)
 
         # --- SICK-Benefit: 80% von 8h pro Krankentag ---
-        sick_days = sum(1 for e in show_list if (e.entry_type or "").upper() == "SICK")
+        sick_days  = sum(1 for e in entries if (e.entry_type or "").upper() in ("SICK","ACCIDENT"))
         if sick_days:
             gross_hr, net_hr = self._period_wages(1.0)  # Satz pro Stunde
             sick_gross = 0.80 * 8.0 * gross_hr * sick_days
@@ -728,9 +793,9 @@ class CalendarMainWidget(QWidget):
             if typ_code == "WORK":
                 day_gross = gross_per_hour * hours_val
                 day_net = net_per_hour * hours_val
-            elif typ_code == "SICK":
+            elif typ_code in ("SICK","ACCIDENT"):
                 day_gross = 0.80 * 8.0 * gross_per_hour
-                day_net = 0.80 * 8.0 * net_per_hour
+                day_net   = 0.80 * 8.0 * net_per_hour
             else:
                 day_gross = 0.0
                 day_net = 0.0
@@ -759,6 +824,12 @@ class CalendarMainWidget(QWidget):
             f"<b><span style='color:#d93025;'>{tr('payroll.gross', self.lang) if tr('payroll.gross', self.lang) != 'payroll.gross' else 'Bruttolohn'}: {fmt_money(gross_total)}</span></b> | "
             f"<b><span style='color:#137333;'>{tr('payroll.net', self.lang) if tr('payroll.net', self.lang) != 'payroll.net' else 'Nettolohn'}: {fmt_money(net_total)}</span></b>"
         )
+
+        sick_like_days = sum(1 for e in show_list if (e.entry_type or "").upper() in ("SICK", "ACCIDENT"))
+        if sick_like_days:
+            g_hr, n_hr = self._period_wages(1.0)
+            gross_total += 0.80 * 8.0 * g_hr * sick_like_days
+            net_total += 0.80 * 8.0 * n_hr * sick_like_days
 
         # Analytics auf Basis des aktuellen Analytics-Zeitraums neu erstellen
         self._rebuild_analytics()
@@ -792,7 +863,7 @@ class CalendarMainWidget(QWidget):
                 types_by_day.setdefault(d, set()).add(typ)
 
             # Farbenlisten erzeugen (feste Reihenfolge der Typen, dann Rest alphabetisch)
-            PRIORITY = ["WORK", "VACATION", "SICK", "HOLIDAY", "OFF", "OTHER"]
+            PRIORITY = ["WORK", "VACATION", "SICK", "ACCIDENT", "HOLIDAY", "OFF", "OTHER"]
             marks_set: set[QDate] = set()
             color_map_multi: Dict[QDate, List[QColor]] = {}
 
@@ -817,6 +888,17 @@ class CalendarMainWidget(QWidget):
         entry_id = it.data(Qt.ItemDataRole.UserRole)
         return int(entry_id) if entry_id is not None else None
 
+    def _selected_entry_ids(self) -> list[int]:
+        rows = sorted({ix.row() for ix in self.table.selectedIndexes()})
+        ids: list[int] = []
+        for r in rows:
+            it = self.table.item(r, 0)
+            if not it: continue
+            eid = it.data(Qt.ItemDataRole.UserRole)
+            if eid is not None:
+                ids.append(int(eid))
+        return ids
+
     def _new_entry(self):
         dlg = EntryDialog(self.session_factory, user_id=self.view_user_id, lang=self.lang, entry=None, parent=self)
         if dlg.exec(): self._reload()
@@ -832,11 +914,15 @@ class CalendarMainWidget(QWidget):
         if dlg.exec(): self._reload()
 
     def _delete_entry(self):
-        eid = self._selected_entry_id()
-        if eid is None: return
-        if QMessageBox.question(self, _t(self.lang,"title"), _t(self.lang,"confirm_delete")) != QMessageBox.StandardButton.Yes:
+        ids = self._selected_entry_ids()
+        if not ids:
             return
-        with self.session_factory() as s: delete_entry(s, eid)
+        if QMessageBox.question(self, _t(self.lang, "title"),
+                                _t(self.lang, "confirm_delete")) != QMessageBox.StandardButton.Yes:
+            return
+        with self.session_factory() as s:
+            for eid in ids:
+                delete_entry(s, eid)
         self._reload()
 
     # ----- Export -----
@@ -859,34 +945,91 @@ class CalendarMainWidget(QWidget):
             from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
             from reportlab.lib.styles import getSampleStyleSheet
         except ImportError:
-            QMessageBox.warning(self, "PDF", "reportlab ist nicht installiert.\nBitte ausführen: pip install reportlab"); return
-        entries = self._current_view_entries()
-        if not entries: QMessageBox.information(self, "PDF", "Keine Daten für Export."); return
-        path, _ = QFileDialog.getSaveFileName(
-            self, "PDF speichern", self._calendar_export_filename("pdf"), "PDF (*.pdf)"
-        )
-        if not path: return
+            QMessageBox.warning(self, "PDF",
+                                "reportlab ist nicht installiert.\nBitte ausführen: pip install reportlab");
+            return
 
-        data = [[_t(self.lang,"date"), _t(self.lang,"start"), _t(self.lang,"end"), _t(self.lang,"break"),
-                 _t(self.lang,"hours"), _t(self.lang,"type"), _t(self.lang,"note"), _t(self.lang,"location")]]
+        entries = self._current_view_entries()
+        if not entries:
+            QMessageBox.information(self, "PDF", "Keine Daten für Export.")
+            return
+
+        # ---- vorgeschlagenen Dateinamen zusammenbauen (mit Monat/Jahr) ----
+        from datetime import date as _date
+        import re
+        from sqlalchemy import select
+        try:
+            y = entries[0].date.year
+            m = entries[0].date.month
+        except Exception:
+            today = _date.today()
+            y, m = today.year, today.month
+
+        # User-Daten für sprechenden Namen
+        ln, fn, em = "NA", "NA", "NA"
+        try:
+            from core.models import User, UserProfile
+            with self.session_factory() as s:
+                p = s.execute(select(UserProfile).where(UserProfile.user_id == self.view_user_id)).scalar_one_or_none()
+                if p:
+                    ln = p.last_name or ln
+                    fn = p.first_name or fn
+                    em = p.employer or em
+                else:
+                    u = s.execute(select(User).where(User.id == self.view_user_id)).scalar_one_or_none()
+                    if u:
+                        ln = (u.username or "NA")
+        except Exception:
+            pass
+
+        def _san(s: str) -> str:
+            s = (s or "").strip()
+            s = re.sub(r"\s+", "_", s)
+            return re.sub(r"[^A-Za-z0-9_.\-äöüÄÖÜß]", "", s) or "NA"
+
+        base = f"Cal-Export_{_san(ln)}_{_san(fn)}_{_san(em)}_Monat_{m:02d}-{y}_Erstellt_am_{_date.today().isoformat()}"
+        suggested = f"{base}.pdf"
+        # -------------------------------------------------------------------
+
+        path, _ = QFileDialog.getSaveFileName(self, "PDF speichern", suggested, "PDF (*.pdf)")
+        if not path:
+            return
+
+        data = [[_t(self.lang, "date"), _t(self.lang, "start"), _t(self.lang, "end"), _t(self.lang, "break"),
+                 _t(self.lang, "hours"), _t(self.lang, "type"), _t(self.lang, "note"), _t(self.lang, "location")]]
         for e in entries:
-            data.append([e.date.isoformat(), e.start_time.strftime("%H:%M") if e.start_time else "",
-                         e.end_time.strftime("%H:%M") if e.end_time else "", str(int(e.break_minutes or 0)),
-                         f"{float(e.hours or 0):.2f}", _type_label(self.lang, e.entry_type), e.note or "", e.location or ""])
+            data.append([
+                e.date.isoformat(),
+                e.start_time.strftime("%H:%M") if e.start_time else "",
+                e.end_time.strftime("%H:%M") if e.end_time else "",
+                str(int(e.break_minutes or 0)),
+                f"{float(e.hours or 0):.2f}",
+                _type_label(self.lang, e.entry_type),
+                e.note or "",
+                e.location or ""
+            ])
 
         hours = sum(float(e.hours or 0.0) for e in entries if _is_worked(e.entry_type))
         gross, net = self._period_wages(hours)
-        data.append(["", "", "", "", f"{hours:.2f}", "—", f"{tr('payroll.gross', self.lang) if tr('payroll.gross', self.lang)!='payroll.gross' else 'Bruttolohn'}: {gross:.2f}",
-                     f"{tr('payroll.net', self.lang) if tr('payroll.net', self.lang)!='payroll.net' else 'Nettolohn'}: {net:.2f}"])
+        data.append([
+            "", "", "", "", f"{hours:.2f}", "—",
+            f"{tr('payroll.gross', self.lang) if tr('payroll.gross', self.lang) != 'payroll.gross' else 'Bruttolohn'}: {gross:.2f}",
+            f"{tr('payroll.net', self.lang) if tr('payroll.net', self.lang) != 'payroll.net' else 'Nettolohn'}: {net:.2f}"
+        ])
 
-        doc = SimpleDocTemplate(path, pagesize=landscape(A4), title=_t(self.lang,"title"))
+        doc = SimpleDocTemplate(path, pagesize=landscape(A4), title=_t(self.lang, "title"))
         styles = getSampleStyleSheet()
-        elems = [Paragraph(_t(self.lang,"title"), styles["Title"]), Spacer(1,6)]
+        elems = [Paragraph(_t(self.lang, "title"), styles["Title"]), Spacer(1, 6)]
         table = Table(data, repeatRows=1)
-        table.setStyle([("BACKGROUND",(0,0),(-1,0),"#eeeeee"),("GRID",(0,0),(-1,-1),0.25,"gray"),
-                        ("ALIGN",(1,1),(4,-1),"CENTER"),("ALIGN",(5,1),(5,-1),"LEFT"),
-                        ("FONT",(0,0),(-1,0),"Helvetica-Bold")])
-        elems.append(table); doc.build(elems)
+        table.setStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), "#eeeeee"),
+            ("GRID", (0, 0), (-1, -1), 0.25, "gray"),
+            ("ALIGN", (1, 1), (4, -1), "CENTER"),
+            ("ALIGN", (5, 1), (5, -1), "LEFT"),
+            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold")
+        ])
+        elems.append(table)
+        doc.build(elems)
         QMessageBox.information(self, "PDF", f"Exportiert: {path}")
 
     def _export_xlsx(self):
@@ -894,65 +1037,172 @@ class CalendarMainWidget(QWidget):
             import openpyxl
             from openpyxl.styles import Font
         except ImportError:
-            QMessageBox.warning(self, "Excel", "openpyxl ist nicht installiert.\nBitte ausführen: pip install openpyxl"); return
-        entries = self._current_view_entries()
-        if not entries: QMessageBox.information(self, "Excel", "Keine Daten für Export."); return
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Excel speichern", self._calendar_export_filename("xlsx"), "Excel (*.xlsx)"
-        )
-        if not path: return
+            QMessageBox.warning(self, "Excel",
+                                "openpyxl ist nicht installiert.\nBitte ausführen: pip install openpyxl");
+            return
 
-        wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Calendar"
-        headers = [_t(self.lang,"date"), _t(self.lang,"start"), _t(self.lang,"end"), _t(self.lang,"break"),
-                   _t(self.lang,"hours"), _t(self.lang,"type"), _t(self.lang,"note"), _t(self.lang,"location")]
-        ws.append(headers); bold = Font(bold=True)
-        for col in range(1, len(headers)+1): ws.cell(row=1, column=col).font = bold
+        entries = self._current_view_entries()
+        if not entries:
+            QMessageBox.information(self, "Excel", "Keine Daten für Export.")
+            return
+
+        # ---- vorgeschlagenen Dateinamen zusammenbauen (mit Monat/Jahr) ----
+        from datetime import date as _date
+        import re
+        from sqlalchemy import select
+        try:
+            y = entries[0].date.year
+            m = entries[0].date.month
+        except Exception:
+            today = _date.today()
+            y, m = today.year, today.month
+
+        ln, fn, em = "NA", "NA", "NA"
+        try:
+            from core.models import User, UserProfile
+            with self.session_factory() as s:
+                p = s.execute(select(UserProfile).where(UserProfile.user_id == self.view_user_id)).scalar_one_or_none()
+                if p:
+                    ln = p.last_name or ln
+                    fn = p.first_name or fn
+                    em = p.employer or em
+                else:
+                    u = s.execute(select(User).where(User.id == self.view_user_id)).scalar_one_or_none()
+                    if u:
+                        ln = (u.username or "NA")
+        except Exception:
+            pass
+
+        def _san(s: str) -> str:
+            s = (s or "").strip()
+            s = re.sub(r"\s+", "_", s)
+            return re.sub(r"[^A-Za-z0-9_.\-äöüÄÖÜß]", "", s) or "NA"
+
+        base = f"Cal-Export_{_san(ln)}_{_san(fn)}_{_san(em)}_Monat_{m:02d}-{y}_Erstellt_am_{_date.today().isoformat()}"
+        suggested = f"{base}.xlsx"
+        # -------------------------------------------------------------------
+
+        path, _ = QFileDialog.getSaveFileName(self, "Excel speichern", suggested, "Excel (*.xlsx)")
+        if not path:
+            return
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Calendar"
+
+        headers = [_t(self.lang, "date"), _t(self.lang, "start"), _t(self.lang, "end"), _t(self.lang, "break"),
+                   _t(self.lang, "hours"), _t(self.lang, "type"), _t(self.lang, "note"), _t(self.lang, "location")]
+        ws.append(headers)
+        bold = Font(bold=True)
+        for col in range(1, len(headers) + 1):
+            ws.cell(row=1, column=col).font = bold
 
         for e in entries:
-            ws.append([e.date.isoformat(), e.start_time.strftime("%H:%M") if e.start_time else "",
-                       e.end_time.strftime("%H:%M") if e.end_time else "", int(e.break_minutes or 0),
-                       float(e.hours or 0.0), _type_label(self.lang, e.entry_type), e.note or "", e.location or ""])
-        wb.save(path); QMessageBox.information(self, "Excel", f"Exportiert: {path}")
+            ws.append([
+                e.date.isoformat(),
+                e.start_time.strftime("%H:%M") if e.start_time else "",
+                e.end_time.strftime("%H:%M") if e.end_time else "",
+                int(e.break_minutes or 0),
+                float(e.hours or 0.0),
+                _type_label(self.lang, e.entry_type),
+                e.note or "",
+                e.location or ""
+            ])
 
-    # ----- CSV Import -----
+        wb.save(path)
+        QMessageBox.information(self, "Excel", f"Exportiert: {path}")
+
+    # --- CSV Import/Export robust ---
     def _import_csv_entries(self):
+        """CSV-Import: erkennt Delimiter automatisch (',' oder ';') und akzeptiert Spalten-Aliase."""
         try:
             path, _ = QFileDialog.getOpenFileName(self, "CSV importieren", "", "CSV (*.csv)")
-            if not path: return
-            from core.services.import_service import import_entries_csv
-            with self.session_factory() as s:
-                count = import_entries_csv(s, self.view_user_id, _Path(path))
-            QMessageBox.information(self, "CSV", f"{count} Einträge importiert.")
+            if not path:
+                return
+
+            # Datei einlesen & Delimiter erkennen
+            with open(path, "r", encoding="utf-8") as f:
+                sample = f.read(2048)
+                f.seek(0)
+                try:
+                    dialect = csv.Sniffer().sniff(sample, delimiters=";,")
+                    delim = dialect.delimiter
+                except Exception:
+                    # Fallback: zuerst ';', sonst ','
+                    delim = ";" if ";" in sample else ","
+                reader = csv.DictReader(f, delimiter=delim)
+                if not reader.fieldnames:
+                    raise ValueError("Leere CSV oder keine Kopfzeile.")
+
+                # Kopfzeilen normieren
+                cols_lc = {c.strip().lower(): c for c in reader.fieldnames}
+
+                # Aliase -> Zielspalte
+                alias = {
+                    "date": ["date", "datum"],
+                    "start": ["start", "beginn"],
+                    "end": ["end", "ende"],
+                    "break_minutes": ["break_minutes", "break", "pause", "pause (min)"],
+                    "hours": ["hours", "stunden"],
+                    "type": ["type", "typ"],
+                    "note": ["note", "notiz"],
+                    "location": ["location", "ort"],
+                }
+
+                def get(row, key):
+                    for a in alias[key]:
+                        if a in cols_lc:
+                            return (row.get(cols_lc[a]) or "").strip()
+                    return ""
+
+                created = 0
+                with self.session_factory() as s:
+                    for row in reader:
+                        try:
+                            d_txt = get(row, "date")
+                            if not d_txt:
+                                continue
+                            d = date.fromisoformat(d_txt)
+
+                            st = get(row, "start");
+                            et = get(row, "end")
+                            start_t = None if not st else (
+                                None if len(st) < 4 else __import__("datetime").time(int(st[:2]), int(st[3:5])))
+                            end_t = None if not et else (
+                                None if len(et) < 4 else __import__("datetime").time(int(et[:2]), int(et[3:5])))
+
+                            brk = get(row, "break_minutes");
+                            brk_i = int(brk) if brk else 0
+                            hrs = get(row, "hours");
+                            hrs_f = float(hrs.replace(",", ".")) if hrs else 0.0
+                            typ = (get(row, "type") or "WORK").upper()
+                            note = get(row, "note") or None
+                            loc = get(row, "location") or None
+
+                            create_entry(s, self.view_user_id, date=d, start_time=start_t, end_time=end_t,
+                                         break_minutes=brk_i, hours=hrs_f, entry_type=typ, note=note, location=loc)
+                            created += 1
+                        except Exception:
+                            # Zeile überspringen; optional loggen
+                            continue
+            QMessageBox.information(self, "CSV", f"{created} Einträge importiert.")
             self._reload()
         except Exception as ex:
             QMessageBox.critical(self, "CSV", str(ex))
 
     def _export_csv(self):
-        # Nutzer/Profil ermitteln für den vorgeschlagenen Dateinamen
         with self.session_factory() as s:
             u = s.get(User, self.view_user_id)
             p = s.query(UserProfile).filter(UserProfile.user_id == self.view_user_id).one_or_none()
-        last = (p.last_name or "") if p else ""
-        first = (p.first_name or (u.username if u else ""))
-        employer = (p.employer or "—") if p else "—"
-
-        path, _ = QFileDialog.getSaveFileName(
-            self, "CSV speichern",
-            _calendar_export_filename(last, first, employer, "csv"),
-            "CSV (*.csv)"
-        )
-        if not path:
-            return
-
+        last = (p.last_name or "") if p else ""; first = (p.first_name or (u.username if u else "")); employer = (p.employer or "—") if p else "—"
+        path, _ = QFileDialog.getSaveFileName(self, "CSV speichern", _calendar_export_filename(last, first, employer, "csv"), "CSV (*.csv)")
+        if not path: return
         entries = self._current_view_entries()
         try:
             with open(path, "w", newline="", encoding="utf-8") as f:
                 w = csv.writer(f, delimiter=";")
-                w.writerow([
-                    _t(self.lang, "date"), _t(self.lang, "start"), _t(self.lang, "end"),
-                    _t(self.lang, "break"), _t(self.lang, "hours"), _t(self.lang, "type"),
-                    _t(self.lang, "note"), _t(self.lang, "location")
-                ])
+                # KANONISCHE Header
+                w.writerow(["date","start","end","break_minutes","hours","type","note","location"])
                 for e in entries:
                     w.writerow([
                         e.date.isoformat(),
@@ -960,7 +1210,7 @@ class CalendarMainWidget(QWidget):
                         e.end_time.strftime("%H:%M") if e.end_time else "",
                         int(e.break_minutes or 0),
                         f"{float(e.hours or 0.0):.2f}",
-                        _type_label(self.lang, e.entry_type),
+                        (e.entry_type or ""),
                         e.note or "",
                         e.location or ""
                     ])
@@ -1000,29 +1250,24 @@ class CalendarMainWidget(QWidget):
             return
 
         # Linie: Stunden/Tag (schwarz)
-        self.fig_hours.clear()
+        self.fig_hours.clear();
         ax1 = self.fig_hours.add_subplot(111)
-        if hours_by_day:
-            xs = sorted(hours_by_day.keys())
-            ys = [hours_by_day[d] for d in xs]
-            ax1.plot(xs, ys)  # default black
+        if hours_by_day: xs = sorted(hours_by_day.keys()); ys = [hours_by_day[d] for d in xs]; ax1.plot(xs, ys)
         ax1.set_title(tr("analytics.hours_per_day", self.lang) if tr("analytics.hours_per_day",
                                                                      self.lang) != "analytics.hours_per_day" else "Stunden pro Tag")
         ax1.set_xlabel(_t(self.lang, "date"));
-        ax1.set_ylabel(_t(self.lang, "hours"))
+        ax1.set_ylabel(_t(self.lang, "hours"));
         self.fig_hours.tight_layout();
         self.canvas_hours.draw()
 
         # Balken: Brutto/Monat (rot)
-        self.fig_gross.clear()
+        self.fig_gross.clear();
         ax2 = self.fig_gross.add_subplot(111)
-        if gross_by_month:
-            xs = sorted(gross_by_month.keys())
-            ys = [gross_by_month[k] for k in xs]
-            ax2.bar(xs, ys, color="#d93025")
+        if gross_by_month: xs = sorted(gross_by_month.keys()); ys = [gross_by_month[k] for k in xs]; ax2.bar(xs, ys,
+                                                                                                             color="#d93025")
         ax2.set_title(tr("analytics.gross_per_month", self.lang) if tr("analytics.gross_per_month",
                                                                        self.lang) != "analytics.gross_per_month" else "Brutto (Total) pro Monat")
-        ax2.set_xlabel(tr("payroll.menu", self.lang) if tr("payroll.menu", self.lang) != "payroll.menu" else "Monat")
+        ax2.set_xlabel(tr("payroll.menu", self.lang) if tr("payroll.menu", self.lang) != "payroll.menu" else "Monat");
         ax2.set_ylabel(
             tr("payroll.gross", self.lang) if tr("payroll.gross", self.lang) != "payroll.gross" else "Bruttolohn")
         self.fig_gross.tight_layout();

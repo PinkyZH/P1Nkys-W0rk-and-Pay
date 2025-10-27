@@ -1,6 +1,7 @@
 from __future__ import annotations
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.engine import Engine
+from sqlalchemy import text
 
 Base = declarative_base()
 def _has_column(conn, table: str, column: str) -> bool:
@@ -10,7 +11,16 @@ def _has_column(conn, table: str, column: str) -> bool:
         return False
     return any(r[1] == column for r in res)
 def init_db(engine):
-    Base.metadata.create_all(engine)  # nur hier und nur einmal
+    # Tabellen anlegen (für neue DBs)
+    Base.metadata.create_all(engine)
+
+    # Bestehende SQLite-DBs „sanft“ nachrüsten
+    try:
+        _ensure_sqlite_columns(engine)
+    except Exception as ex:
+        # nicht abstürzen lassen; im Log vermerken
+        import logging
+        logging.getLogger("workpay").warning("Schema-Nachrüstung übersprungen: %s", ex)
 
     # ---- defensive Nachrüstung für Bestandsdatenbanken ----
     with engine.begin() as conn:
@@ -44,3 +54,19 @@ def get_engine(url="sqlite:///workpay.db"):
 
 def get_session_factory(engine):
     return sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+def _ensure_sqlite_columns(engine):
+    """Fügt fehlende Spalten in bestehenden SQLite-Tabellen hinzu (leichtgewichtig, ohne Alembic)."""
+    with engine.begin() as conn:
+        def has_col(table: str, col: str) -> bool:
+            rows = conn.execute(text(f"PRAGMA table_info({table})")).fetchall()
+            cols = {r[1] for r in rows}  # r[1] = name
+            return col in cols
+
+        # work_entries: optionale Felder nachrüsten
+        if not has_col("work_entries", "hourly_override"):
+            conn.execute(text("ALTER TABLE work_entries ADD COLUMN hourly_override REAL"))
+        if not has_col("work_entries", "pay_rate_override"):
+            conn.execute(text("ALTER TABLE work_entries ADD COLUMN pay_rate_override REAL"))
+        if not has_col("work_entries", "overtime_hours"):
+            conn.execute(text("ALTER TABLE work_entries ADD COLUMN overtime_hours REAL"))
