@@ -1,7 +1,8 @@
-
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Dict
+
 
 @dataclass
 class WageInput:
@@ -17,8 +18,10 @@ class WageInput:
     lgav_fixed_monthly: float = 0.0
     weekly_hours: float = 41.0
 
+
 def _round2(x: float) -> float:
     return round(float(x or 0.0) + 1e-9, 2)
+
 
 def compute_effective(w: WageInput) -> Dict[str, float]:
     """Compute effective gross and net, hourly and monthly (100% workload).

@@ -1,22 +1,20 @@
 from __future__ import annotations
+
 from datetime import date, timedelta
 
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget, QWidget, QFormLayout,
+    QDoubleSpinBox, QPushButton, QSpinBox, QMessageBox
+)
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
 
-from core.utils.i18n import t
 from core.models import UserProfile
 from core.services.wage_service import (
     _load_global_defaults, save_global_defaults, simulate_from_params,
     save_user_overrides, reset_user_overrides
 )
-from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget, QWidget, QFormLayout,
-    QDoubleSpinBox, QPushButton, QSpinBox, QMessageBox
-)
-
 from core.services.work_service import list_entries_by_range
+from core.utils.i18n import t
 
 SICK_BENEFIT_HOURS = 8.0
 SICK_BENEFIT_FACTOR = 0.80
@@ -76,49 +74,90 @@ class WageRulesDialog(QDialog):
 
         d = _load_global_defaults()
 
-        self.g_hourly = _Num(0, 1000);    self.g_hourly.setValue(d.get("hourly_brutto", 0.0))
-        self.g_vac    = _Num(0, 100);     self.g_vac.setValue(d.get("vac_pct", 0.0))
-        self.g_hol    = _Num(0, 100);     self.g_hol.setValue(d.get("holiday_pct", 0.0))
-        self.g_13     = _Num(0, 100);     self.g_13.setValue(d.get("thirteenth_pct", 0.0))
-        self.g_exp    = _Num(0, 1000);    self.g_exp.setValue(d.get("expenses_per_hour", 0.0))
-        self.g_ahv    = _Num(0, 100);     self.g_ahv.setValue(d.get("ahv_pct", 0.0))
-        self.g_nbu    = _Num(0, 100);     self.g_nbu.setValue(d.get("nbu_pct", 0.0))
-        self.g_ktg    = _Num(0, 100);     self.g_ktg.setValue(d.get("ktg_pct", 0.0))
-        self.g_bvg    = _Num(0, 100);     self.g_bvg.setValue(d.get("bvg_pct", 0.0))
-        self.g_lgav   = _Num(0, 100000);  self.g_lgav.setValue(d.get("lgav_fixed_monthly", 0.0))
-        self.g_week   = _Num(0, 100);     self.g_week.setValue(d.get("weekly_hours", 0.0))
-        self.g_sim_hours = QSpinBox();    self.g_sim_hours.setRange(0, 400); self.g_sim_hours.setValue(0)
+        self.g_hourly = _Num(0, 1000);
+        self.g_hourly.setValue(d.get("hourly_brutto", 0.0))
+        self.g_vac = _Num(0, 100);
+        self.g_vac.setValue(d.get("vac_pct", 0.0))
+        self.g_hol = _Num(0, 100);
+        self.g_hol.setValue(d.get("holiday_pct", 0.0))
+        self.g_13 = _Num(0, 100);
+        self.g_13.setValue(d.get("thirteenth_pct", 0.0))
+        self.g_exp = _Num(0, 1000);
+        self.g_exp.setValue(d.get("expenses_per_hour", 0.0))
+        self.g_ahv = _Num(0, 100);
+        self.g_ahv.setValue(d.get("ahv_pct", 0.0))
+        self.g_nbu = _Num(0, 100);
+        self.g_nbu.setValue(d.get("nbu_pct", 0.0))
+        self.g_ktg = _Num(0, 100);
+        self.g_ktg.setValue(d.get("ktg_pct", 0.0))
+        self.g_bvg = _Num(0, 100);
+        self.g_bvg.setValue(d.get("bvg_pct", 0.0))
+        self.g_lgav = _Num(0, 100000);
+        self.g_lgav.setValue(d.get("lgav_fixed_monthly", 0.0))
+        self.g_week = _Num(0, 100);
+        self.g_week.setValue(d.get("weekly_hours", 0.0))
+        self.g_sim_hours = QSpinBox();
+        self.g_sim_hours.setRange(0, 400);
+        self.g_sim_hours.setValue(0)
 
         def row(lbl, wdg): fl.addRow(lbl, wdg)
 
         row(t("profile.hourly_wage", self.lang), self.g_hourly)
-        row(t("profile.vac_pct_label", self.lang) if t("profile.vac_pct_label", self.lang) != "profile.vac_pct_label" else "Feriengeld %", self.g_vac)
-        row(t("profile.holiday_pct_label", self.lang) if t("profile.holiday_pct_label", self.lang) != "profile.holiday_pct_label" else "Feiertage %", self.g_hol)
-        row(t("profile.thirteenth_pct_label", self.lang) if t("profile.thirteenth_pct_label", self.lang) != "profile.thirteenth_pct_label" else "13. Monatslohn %", self.g_13)
-        row(t("profile.expenses_per_hour_label", self.lang) if t("profile.expenses_per_hour_label", self.lang) != "profile.expenses_per_hour_label" else "Spesen/Std.", self.g_exp)
-        row("AHV/IV/EO/ALV %", self.g_ahv); row("NBU/BU %", self.g_nbu); row("KTG %", self.g_ktg); row("BVG %", self.g_bvg)
+        row(t("profile.vac_pct_label", self.lang) if t("profile.vac_pct_label",
+                                                       self.lang) != "profile.vac_pct_label" else "Feriengeld %",
+            self.g_vac)
+        row(t("profile.holiday_pct_label", self.lang) if t("profile.holiday_pct_label",
+                                                           self.lang) != "profile.holiday_pct_label" else "Feiertage %",
+            self.g_hol)
+        row(t("profile.thirteenth_pct_label", self.lang) if t("profile.thirteenth_pct_label",
+                                                              self.lang) != "profile.thirteenth_pct_label" else "13. Monatslohn %",
+            self.g_13)
+        row(t("profile.expenses_per_hour_label", self.lang) if t("profile.expenses_per_hour_label",
+                                                                 self.lang) != "profile.expenses_per_hour_label" else "Spesen/Std.",
+            self.g_exp)
+        row("AHV/IV/EO/ALV %", self.g_ahv);
+        row("NBU/BU %", self.g_nbu);
+        row("KTG %", self.g_ktg);
+        row("BVG %", self.g_bvg)
         row("LGAV/Monat", self.g_lgav)
-        row(t("profile.weekly_hours_label", self.lang) if t("profile.weekly_hours_label", self.lang) != "profile.weekly_hours_label" else "Wochenstunden", self.g_week)
-        row(t("rules.wage.preview_hours", self.lang) if t("rules.wage.preview_hours", self.lang) != "rules.wage.preview_hours" else "Vorschau-Stunden/Monat", self.g_sim_hours)
+        row(t("profile.weekly_hours_label", self.lang) if t("profile.weekly_hours_label",
+                                                            self.lang) != "profile.weekly_hours_label" else "Wochenstunden",
+            self.g_week)
+        row(t("rules.wage.preview_hours", self.lang) if t("rules.wage.preview_hours",
+                                                          self.lang) != "rules.wage.preview_hours" else "Vorschau-Stunden/Monat",
+            self.g_sim_hours)
 
         # Monat/Jahr rechts + „Monat laden“
         mrow = QHBoxLayout()
-        self.g_month = QSpinBox(); self.g_month.setRange(1, 12); self.g_month.setValue(date.today().month)
-        self.g_year  = QSpinBox(); self.g_year.setRange(2000, 2100); self.g_year.setValue(date.today().year)
-        btn_load = QPushButton(t("wprev.load_month", self.lang) if t("wprev.load_month", self.lang) != "wprev.load_month" else "Monat laden")
+        self.g_month = QSpinBox();
+        self.g_month.setRange(1, 12);
+        self.g_month.setValue(date.today().month)
+        self.g_year = QSpinBox();
+        self.g_year.setRange(2000, 2100);
+        self.g_year.setValue(date.today().year)
+        btn_load = QPushButton(t("wprev.load_month", self.lang) if t("wprev.load_month",
+                                                                     self.lang) != "wprev.load_month" else "Monat laden")
         mrow.addStretch(1)
-        mrow.addWidget(QLabel(t("wprev.month_select", self.lang) if t("wprev.month_select", self.lang) != "wprev.month_select" else "Monat/Jahr"))
-        mrow.addWidget(self.g_month); mrow.addWidget(self.g_year); mrow.addWidget(btn_load)
+        mrow.addWidget(QLabel(t("wprev.month_select", self.lang) if t("wprev.month_select",
+                                                                      self.lang) != "wprev.month_select" else "Monat/Jahr"))
+        mrow.addWidget(self.g_month);
+        mrow.addWidget(self.g_year);
+        mrow.addWidget(btn_load)
         fl.addRow(mrow)
 
         # Buttons + Ergebnis
         brow = QHBoxLayout()
-        btn_prev = QPushButton(t("rules.wage.preview_btn", self.lang) if t("rules.wage.preview_btn", self.lang) != "rules.wage.preview_btn" else "Vorschau")
-        btn_save = QPushButton(t("dialogs.common.save", self.lang) if t("dialogs.common.save", self.lang) != "dialogs.common.save" else "Speichern")
-        brow.addWidget(btn_prev); brow.addWidget(btn_save)
+        btn_prev = QPushButton(t("rules.wage.preview_btn", self.lang) if t("rules.wage.preview_btn",
+                                                                           self.lang) != "rules.wage.preview_btn" else "Vorschau")
+        btn_save = QPushButton(t("dialogs.common.save", self.lang) if t("dialogs.common.save",
+                                                                        self.lang) != "dialogs.common.save" else "Speichern")
+        brow.addWidget(btn_prev);
+        brow.addWidget(btn_save)
         fl.addRow(brow)
         self.g_prev = QLabel("-")
-        fl.addRow(QLabel(t("dialogs.common.result", self.lang) if t("dialogs.common.result", self.lang) != "dialogs.common.result" else "Ergebnis:"), self.g_prev)
+        fl.addRow(QLabel(t("dialogs.common.result", self.lang) if t("dialogs.common.result",
+                                                                    self.lang) != "dialogs.common.result" else "Ergebnis:"),
+                  self.g_prev)
 
         btn_prev.clicked.connect(self._do_global_preview)
         btn_save.clicked.connect(self._do_global_save)
@@ -251,10 +290,10 @@ class WageRulesDialog(QDialog):
         }
         res = simulate_from_params(params, float(self.g_sim_hours.value()))
         self.g_prev.setText(
-            f"{t('dialogs.common.gross_per_hour', self.lang) if t('dialogs.common.gross_per_hour', self.lang)!='dialogs.common.gross_per_hour' else 'Brutto/Std'}: {res['gross_per_hour']:.2f} | "
-            f"{t('dialogs.common.net_per_hour', self.lang) if t('dialogs.common.net_per_hour', self.lang)!='dialogs.common.net_per_hour' else 'Netto/Std'}: {res['net_per_hour']:.2f} || "
-            f"{t('dialogs.common.gross_per_month', self.lang) if t('dialogs.common.gross_per_month', self.lang)!='dialogs.common.gross_per_month' else 'Brutto/Monat'}: {res['gross_per_month']:.2f} | "
-            f"{t('dialogs.common.net_per_month', self.lang) if t('dialogs.common.net_per_month', self.lang)!='dialogs.common.net_per_month' else 'Netto/Monat'}: {res['net_per_month']:.2f}"
+            f"{t('dialogs.common.gross_per_hour', self.lang) if t('dialogs.common.gross_per_hour', self.lang) != 'dialogs.common.gross_per_hour' else 'Brutto/Std'}: {res['gross_per_hour']:.2f} | "
+            f"{t('dialogs.common.net_per_hour', self.lang) if t('dialogs.common.net_per_hour', self.lang) != 'dialogs.common.net_per_hour' else 'Netto/Std'}: {res['net_per_hour']:.2f} || "
+            f"{t('dialogs.common.gross_per_month', self.lang) if t('dialogs.common.gross_per_month', self.lang) != 'dialogs.common.gross_per_month' else 'Brutto/Monat'}: {res['gross_per_month']:.2f} | "
+            f"{t('dialogs.common.net_per_month', self.lang) if t('dialogs.common.net_per_month', self.lang) != 'dialogs.common.net_per_month' else 'Netto/Monat'}: {res['net_per_month']:.2f}"
         )
 
     def _do_global_save(self):
@@ -274,7 +313,8 @@ class WageRulesDialog(QDialog):
         try:
             save_global_defaults(vals)
             QMessageBox.information(self, t("rules.wage.title", self.lang),
-                                    t("dialogs.common.saved", self.lang) if t("dialogs.common.saved", self.lang) != "dialogs.common.saved" else "Gespeichert.")
+                                    t("dialogs.common.saved", self.lang) if t("dialogs.common.saved",
+                                                                              self.lang) != "dialogs.common.saved" else "Gespeichert.")
         except Exception as ex:
             QMessageBox.critical(self, t("rules.wage.title", self.lang), str(ex))
 
@@ -282,7 +322,8 @@ class WageRulesDialog(QDialog):
         if not getattr(self, "user_id", None):
             self.g_prev.setText("—")
             return
-        y = int(self.g_year.value()); m = int(self.g_month.value())
+        y = int(self.g_year.value());
+        m = int(self.g_month.value())
         start = date(y, m, 1)
         end = (date(y + 1, 1, 1) - timedelta(days=1)) if m == 12 else (date(y, m + 1, 1) - timedelta(days=1))
         with self.session_factory() as s:
@@ -307,10 +348,10 @@ class WageRulesDialog(QDialog):
         }
         res = simulate_from_params(params, float(self.u_sim_hours.value()))
         self.u_prev.setText(
-            f"{t('dialogs.common.gross_per_hour', self.lang) if t('dialogs.common.gross_per_hour', self.lang)!='dialogs.common.gross_per_hour' else 'Brutto/Std'}: {res['gross_per_hour']:.2f} | "
-            f"{t('dialogs.common.net_per_hour', self.lang) if t('dialogs.common.net_per_hour', self.lang)!='dialogs.common.net_per_hour' else 'Netto/Std'}: {res['net_per_hour']:.2f} || "
-            f"{t('dialogs.common.gross_per_month', self.lang) if t('dialogs.common.gross_per_month', self.lang)!='dialogs.common.gross_per_month' else 'Brutto/Monat'}: {res['gross_per_month']:.2f} | "
-            f"{t('dialogs.common.net_per_month', self.lang) if t('dialogs.common.net_per_month', self.lang)!='dialogs.common.net_per_month' else 'Netto/Monat'}: {res['net_per_month']:.2f}"
+            f"{t('dialogs.common.gross_per_hour', self.lang) if t('dialogs.common.gross_per_hour', self.lang) != 'dialogs.common.gross_per_hour' else 'Brutto/Std'}: {res['gross_per_hour']:.2f} | "
+            f"{t('dialogs.common.net_per_hour', self.lang) if t('dialogs.common.net_per_hour', self.lang) != 'dialogs.common.net_per_hour' else 'Netto/Std'}: {res['net_per_hour']:.2f} || "
+            f"{t('dialogs.common.gross_per_month', self.lang) if t('dialogs.common.gross_per_month', self.lang) != 'dialogs.common.gross_per_month' else 'Brutto/Monat'}: {res['gross_per_month']:.2f} | "
+            f"{t('dialogs.common.net_per_month', self.lang) if t('dialogs.common.net_per_month', self.lang) != 'dialogs.common.net_per_month' else 'Netto/Monat'}: {res['net_per_month']:.2f}"
         )
 
     def _do_user_save(self):
@@ -330,7 +371,8 @@ class WageRulesDialog(QDialog):
         try:
             save_user_overrides(self.session_factory, self.user_id, vals)
             QMessageBox.information(self, t("rules.wage.title", self.lang),
-                                    t("dialogs.common.saved", self.lang) if t("dialogs.common.saved", self.lang) != "dialogs.common.saved" else "Gespeichert.")
+                                    t("dialogs.common.saved", self.lang) if t("dialogs.common.saved",
+                                                                              self.lang) != "dialogs.common.saved" else "Gespeichert.")
         except Exception as ex:
             QMessageBox.critical(self, t("rules.wage.title", self.lang), str(ex))
 
@@ -338,12 +380,14 @@ class WageRulesDialog(QDialog):
         try:
             reset_user_overrides(self.session_factory, self.user_id)
             QMessageBox.information(self, t("rules.wage.title", self.lang),
-                                    t("rules.wage.reset_ok", self.lang) if t("rules.wage.reset_ok", self.lang) != "rules.wage.reset_ok" else "Overrides zurückgesetzt.")
+                                    t("rules.wage.reset_ok", self.lang) if t("rules.wage.reset_ok",
+                                                                             self.lang) != "rules.wage.reset_ok" else "Overrides zurückgesetzt.")
         except Exception as ex:
             QMessageBox.critical(self, t("rules.wage.title", self.lang), str(ex))
 
     def _load_user_hours_from_month(self):
-        y = int(self.u_year.value()); m = int(self.u_month.value())
+        y = int(self.u_year.value());
+        m = int(self.u_month.value())
         start = date(y, m, 1)
         end = (date(y + 1, 1, 1) - timedelta(days=1)) if m == 12 else (date(y, m + 1, 1) - timedelta(days=1))
         with self.session_factory() as s:

@@ -1,18 +1,23 @@
-
 from __future__ import annotations
+
 from typing import Optional, Iterable, Tuple
-from sqlalchemy.orm import Session
+
 from sqlalchemy import select, or_
-from ..models import User, UserProfile
-from ..utils.validators import validate_email, validate_phone, validate_postcode, validate_iban
-from ..utils.files import save_avatar_image, remove_avatar_image
+from sqlalchemy.orm import Session
+
 from config import DEFAULT_WAGE_PRESETS as _W
+from ..models import User, UserProfile
+from ..utils.files import save_avatar_image, remove_avatar_image
+from ..utils.validators import validate_email, validate_phone, validate_postcode, validate_iban
+
 
 def get_user(session: Session, user_id: int) -> Optional[User]:
     return session.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
 
+
 def get_profile(session: Session, user_id: int) -> Optional[UserProfile]:
     return session.execute(select(UserProfile).where(UserProfile.user_id == user_id)).scalar_one_or_none()
+
 
 def list_users(session: Session, query: Optional[str] = None) -> Iterable[Tuple[User, UserProfile]]:
     stmt = select(User, UserProfile).join(UserProfile, UserProfile.user_id == User.id, isouter=True)
@@ -25,11 +30,13 @@ def list_users(session: Session, query: Optional[str] = None) -> Iterable[Tuple[
     stmt = stmt.order_by(User.id.asc())
     return session.execute(stmt).all()
 
+
 def set_active(session: Session, user_id: int, active: bool) -> None:
     u = get_user(session, user_id)
     if not u: return
     u.is_active = bool(active)
     session.commit()
+
 
 def update_user_and_profile(session: Session, user_id: int, **kwargs) -> None:
     u = get_user(session, user_id)
@@ -37,7 +44,8 @@ def update_user_and_profile(session: Session, user_id: int, **kwargs) -> None:
     p = get_profile(session, user_id)
     if p is None:
         p = UserProfile(user_id=user_id)
-        session.add(p); session.flush()
+        session.add(p);
+        session.flush()
 
     # IBAN check
     iban = kwargs.get("iban")
@@ -61,18 +69,19 @@ def update_user_and_profile(session: Session, user_id: int, **kwargs) -> None:
     # assign remaining simple fields (PERSON + ADMIN + BANK)
     simple_keys = [
         # Person
-        "gender","first_name","last_name","birthday","civil_status","permit_status","locale",
-        "region_code","address","postcode","city","email","phone",
+        "gender", "first_name", "last_name", "birthday", "civil_status", "permit_status", "locale",
+        "region_code", "address", "postcode", "city", "email", "phone",
         # Admin / employment
-        "employee_id","employee_code","employer","employment_start",
+        "employee_id", "employee_code", "employer", "employment_start",
         # Bank
-        "bank_name","bank_address","bank_zip","bank_city","bank_country","account_number","iban",
+        "bank_name", "bank_address", "bank_zip", "bank_city", "bank_country", "account_number", "iban",
     ]
     for k in simple_keys:
         if k in kwargs:
             setattr(p, k, kwargs[k])
 
     session.commit()
+
 
 def delete_user(session: Session, user_id: int):
     u = get_user(session, user_id)
@@ -84,12 +93,15 @@ def delete_user(session: Session, user_id: int):
             return False, "cannot_delete_last_admin"
     prof = get_profile(session, user_id)
     if prof and prof.avatar_path:
-        try: remove_avatar_image(user_id)
-        except Exception: pass
+        try:
+            remove_avatar_image(user_id)
+        except Exception:
+            pass
     if prof: session.delete(prof)
     session.delete(u)
     session.commit()
     return True, "deleted"
+
 
 def ensure_wage_defaults(session: Session) -> None:
     # Non-destructive: if any wage field is None, fill from presets
@@ -114,8 +126,10 @@ def ensure_wage_defaults(session: Session) -> None:
                 # Legacy alias: hourly_rate -> hourly_brutto
                 if name == "hourly_brutto" and hasattr(p, "hourly_rate"):
                     if getattr(p, "hourly_rate") is None:
-                        setattr(p, "hourly_rate", default); changed = True
+                        setattr(p, "hourly_rate", default);
+                        changed = True
                 continue
             if getattr(p, name) is None:
-                setattr(p, name, default); changed = True
+                setattr(p, name, default);
+                changed = True
     if changed: session.commit()

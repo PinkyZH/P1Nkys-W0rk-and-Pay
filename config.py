@@ -1,6 +1,6 @@
 # zentrale App-Konstanten (neu)
 APP_NAME = "P1Nky$ W0rk & P@y"
-APP_VERSION = "3.3"
+APP_VERSION = "4.0"
 
 DEFAULT_WAGE_PRESETS = {
     "hourly_brutto": 21.65,
@@ -23,17 +23,17 @@ ENABLE_SURCHARGES = True
 
 # Prozentaufschläge (auf Lohn/Std)
 SURCHARGE_RULES = {
-    "NIGHT": {   # 22:00 - 06:00 (anteilig)
+    "NIGHT": {  # 22:00 - 06:00 (anteilig)
         "enabled": True,
         "percent": 25.0,
         "from_time": "22:00",
-        "to_time":   "06:00",
+        "to_time": "06:00",
     },
-    "WEEKEND": { # Samstag/Sonntag (voll)
+    "WEEKEND": {  # Samstag/Sonntag (voll)
         "enabled": True,
         "percent": 50.0,
     },
-    "HOLIDAY": { # Feiertag (voll)
+    "HOLIDAY": {  # Feiertag (voll)
         "enabled": True,
         "percent": 100.0,
     },
@@ -46,9 +46,12 @@ HOLIDAYS_STATIC = set([
 ])
 
 # ===== Branding & Format (v2.5 – F) =====
-COMPANY_NAME = "P1Nky$ W0rk & P@y"   # nur für interne PDFs, kann leer bleiben
+COMPANY_NAME = "P1Nky$ W0rk & P@y"  # nur für interne PDFs, kann leer bleiben
 COMPANY_LOGO_PATH = "data/branding/logo.png"  # optional, wenn vorhanden wird im PDF-Kopf angezeigt
 CURRENCY = "CHF"
-ROUND_TO_0_05 = True     # Betrag auf 0.05 runden (CH-typisch)
-THOUSANDS_SEP = "’"      # Tausendertrennzeichen (z. B. 12’345.55)
-DECIMAL_SEP = "."        # Dezimalpunkt
+ROUND_TO_0_05 = True  # Betrag auf 0.05 runden (CH-typisch)
+THOUSANDS_SEP = "’"  # Tausendertrennzeichen (z. B. 12’345.55)
+DECIMAL_SEP = "."  # Dezimalpunkt
+
+ENABLE_ABSENCE = False
+ENABLE_NOTIFICATIONS = False

@@ -1,20 +1,22 @@
 from __future__ import annotations
+
 from typing import Optional
+
+from PySide6.QtCore import QDate, Qt
+# Avatar-Vorschau
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QGroupBox, QFormLayout,
     QLabel, QLineEdit, QDateEdit, QComboBox, QPushButton, QCheckBox,
     QFileDialog, QMessageBox, QDoubleSpinBox
 )
-from PySide6.QtCore import QDate, Qt
-    # Avatar-Vorschau
-from PySide6.QtGui import QPixmap
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
-from languages import tr, LANG
 from core.models import User, UserProfile
-from ui.window_flags import apply_window_controls
 from core.services.log_service import log_activity, log_error
+from languages import tr, LANG
+from ui.window_flags import apply_window_controls
 
 
 def qdate_to_date(qd: QDate):
@@ -31,6 +33,7 @@ class ProfileDialog(QDialog):
     - Stundenlohn (User & Admin) bei Bankdaten (ein-/ausblendbar)
     - Admin-Felder (Mitarbeiter-ID, Kürzel, Arbeitgeber, Eintrittsdatum) in Spalte 4
     """
+
     def __init__(self, session_factory: sessionmaker, user_id: int, lang: str = "de", parent=None):
         super().__init__(parent)
         self.session_factory = session_factory
@@ -101,7 +104,7 @@ class ProfileDialog(QDialog):
             self.combo_civil.addItem(label, key)
 
         self.edit_permit = QLineEdit()  # Aufenthaltsstatus
-        self.edit_ahv = QLineEdit()     # AHV-Nr.
+        self.edit_ahv = QLineEdit()  # AHV-Nr.
 
         f1.addRow(tr("profile.gender", self.lang), self.combo_gender)
         f1.addRow(tr("profile.first_name", self.lang), self.edit_first_name)
@@ -179,10 +182,10 @@ class ProfileDialog(QDialog):
         # Spalte 4 – Anstellung (Admin)
         box_admin = QGroupBox("Anstellung (Admin)")
         f4 = QFormLayout(box_admin)
-        self.edit_emp_id = QLineEdit()     # Mitarbeiter-ID
-        self.edit_emp_code = QLineEdit()   # Kürzel
-        self.edit_employer = QLineEdit()   # Arbeitgeber
-        self.date_employed = QDateEdit()   # Eintritt
+        self.edit_emp_id = QLineEdit()  # Mitarbeiter-ID
+        self.edit_emp_code = QLineEdit()  # Kürzel
+        self.edit_employer = QLineEdit()  # Arbeitgeber
+        self.date_employed = QDateEdit()  # Eintritt
         self.date_employed.setCalendarPopup(True)
 
         f4.addRow(
@@ -264,7 +267,7 @@ class ProfileDialog(QDialog):
         self.combo_locale.setCurrentText(p.locale or "de")
         self.edit_region.setText(p.region_code or "")
         self.edit_address.setText(p.address or "")
-        self.edit_postcode.setText(p.postcode or "")
+        self.edit_postcode.setText(p.postal_code or "")
         self.edit_city.setText(p.city or "")
         self.edit_email.setText(p.email or "")
         self.edit_phone.setText(p.phone or "")
@@ -314,7 +317,7 @@ class ProfileDialog(QDialog):
                 # Persönlich
                 p.gender = self.combo_gender.currentData()
                 p.first_name = _txt(self.edit_first_name)
-                p.last_name  = _txt(self.edit_last_name)
+                p.last_name = _txt(self.edit_last_name)
                 d = self.date_birthday.date()
                 p.birthday = d.toPython() if d and d.isValid() else None
                 p.civil_status = self.combo_civil.currentData()
@@ -325,7 +328,7 @@ class ProfileDialog(QDialog):
                 p.locale = self.combo_locale.currentText()
                 p.region_code = _txt(self.edit_region)
                 p.address = _txt(self.edit_address)
-                p.postcode = _txt(self.edit_postcode)
+                p.postal_code = (self.edit_postcode.text() or "").strip() or None
                 p.city = _txt(self.edit_city)
                 p.email = _txt(self.edit_email)
                 p.phone = _txt(self.edit_phone)
@@ -358,13 +361,13 @@ class ProfileDialog(QDialog):
     def _apply_bank_visibility(self):
         vis = self.chk_bank_visible.isChecked()
         for w in (
-            self.edit_bank_name,
-            self.edit_bank_address,
-            self.edit_bank_zip,
-            self.edit_bank_city,
-            self.edit_bank_country,
-            self.edit_account_number,
-            self.edit_iban,
+                self.edit_bank_name,
+                self.edit_bank_address,
+                self.edit_bank_zip,
+                self.edit_bank_city,
+                self.edit_bank_country,
+                self.edit_account_number,
+                self.edit_iban,
         ):
             w.setVisible(vis)
 

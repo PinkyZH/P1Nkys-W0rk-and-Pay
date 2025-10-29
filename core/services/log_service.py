@@ -1,6 +1,10 @@
 # workpay/core/services/log_service.py
 from __future__ import annotations
-import json, logging, logging.handlers, os
+
+import json
+import logging
+import logging.handlers
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -11,6 +15,7 @@ ERROR_FILE = LOG_DIR / "errors.log"
 
 _LOGGERS: Dict[int, logging.Logger] = {}
 _CONFIGURED = False
+
 
 def setup_logging() -> None:
     global _CONFIGURED
@@ -27,6 +32,7 @@ def setup_logging() -> None:
 
     _CONFIGURED = True
 
+
 def _user_logger(user_id: int) -> logging.Logger:
     setup_logging()
     if user_id in _LOGGERS:
@@ -39,6 +45,7 @@ def _user_logger(user_id: int) -> logging.Logger:
     lg.addHandler(fh)
     _LOGGERS[user_id] = lg
     return lg
+
 
 def log_activity(user_id: int, action: str, meta: Optional[Dict[str, Any]] = None) -> None:
     """
@@ -53,9 +60,11 @@ def log_activity(user_id: int, action: str, meta: Optional[Dict[str, Any]] = Non
     except Exception:
         pass
 
+
 def log_error(msg: str, *, exc: Optional[BaseException] = None) -> None:
     setup_logging()
     logging.getLogger("workpay.errors").error(msg, exc_info=exc)
+
 
 def list_user_log_files() -> Dict[int, Path]:
     setup_logging()
@@ -67,6 +76,7 @@ def list_user_log_files() -> Dict[int, Path]:
         except Exception:
             continue
     return out
+
 
 def read_log(path: Path, max_lines: int = 500) -> str:
     try:

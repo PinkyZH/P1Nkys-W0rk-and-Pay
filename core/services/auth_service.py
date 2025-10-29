@@ -1,14 +1,16 @@
-
 from __future__ import annotations
-import os, hashlib, hmac
+
+import hashlib
+import hmac
+import os
 from typing import Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from config import DEFAULT_ADMIN
 from ..models import User, UserProfile
 
-from config import DEFAULT_ADMIN, DEFAULT_WAGE_PRESETS
-
-from ..db import Base
 
 # PBKDF2 (no external dep)
 def _pbkdf2(password: str, salt: bytes, iterations: int = 200_000, dklen: int = 32) -> bytes:
@@ -48,10 +50,10 @@ def ensure_default_admin(session: Session) -> None:
             "ahv_pct", "nbu_pct", "ktg_pct", "bvg_pct",
             "weekly_hours",
             # falls du noch andere existierende Spalten pflegen willst, hier ergänzen:
-            # "first_name", "last_name", "address", "postcode", "city", "email", "phone",
-            # "employee_id", "employee_code", "employer", "employment_start",
-            # "iban", "bank_name", "bank_address", "bank_zip", "bank_city", "bank_country", "account_number",
-            # "ahv_number",
+            "first_name", "last_name", "address", "postcode", "city", "email", "phone",
+            "employee_id", "employee_code", "employer", "employment_start",
+            "iban", "bank_name", "bank_address", "bank_zip", "bank_city", "bank_country", "account_number",
+            "ahv_number",
         }
         profile_kwargs = {}
         for k in allowed_profile_keys:
@@ -83,3 +85,10 @@ def admin_reset_password(session: Session, user_id: int, new_password: str, forc
     user = session.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
     if not user: return
     update_password(session, user, new_password, force_change=force_change)
+
+def set_password(session, user: User, raw_password: str) -> None:
+    from .auth_service import hash_password  # falls gleiche Datei, entsprechend anpassen
+    user.password_hash = hash_password(raw_password)
+    session.add(user)
+    session.commit()
+

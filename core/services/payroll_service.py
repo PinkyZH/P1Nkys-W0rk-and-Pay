@@ -1,17 +1,19 @@
 from __future__ import annotations
-from typing import Tuple, Dict, List, Any
+
+import json
+import os
 from datetime import date, datetime, timedelta
-import json, os
 from pathlib import Path
+from typing import Tuple, Dict, List, Any
 
+from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_, func
 
-from ..models import WorkEntry, UserProfile, PayrollRun, User
-from config import DEFAULT_WAGE_PRESETS as _W, ENABLE_SURCHARGES, COMPANY_LOGO_PATH, CURRENCY
+from config import ENABLE_SURCHARGES, COMPANY_LOGO_PATH
 from .rules_service import calc_surcharges_for_entry, surcharge_amounts_from_minutes
-from ..utils.formatting import fmt_money
 from .wage_service import get_hour_rates as _wage_per_hour
+from ..models import WorkEntry, UserProfile, PayrollRun, User
+from ..utils.formatting import fmt_money
 
 
 def _effective_hour_rates(session, user_id) -> tuple[float,float]:
@@ -330,7 +332,8 @@ def export_xlsx_range(session: Session, user_id: int,
     employer = prof.employer if prof and prof.employer else "—"
     employee_id = prof.employee_id if prof and prof.employee_id else ""
     birthday = prof.birthday.strftime("%Y-%m-%d") if (prof and prof.birthday) else ""
-    address = prof.address or ""; postcode = prof.postcode or ""; city = prof.city or ""; email = prof.email or ""
+    address = prof.address or "";
+    postcode = prof.postcode or ""; city = prof.city or ""; email = prof.email or ""
     created_str = datetime.now().strftime("%d.%m.%Y")
     ahv_no = prof.ahv_number if prof and prof.ahv_number else ""  # <— AHV hier gesetzt
 

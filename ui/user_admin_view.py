@@ -1,305 +1,332 @@
+# ui/user_admin_view.py  — DROP-IN
+
 from __future__ import annotations
-from datetime import date as _date, datetime as _dt
+
+from datetime import datetime as _dt
+from typing import List
+
+from PySide6.QtCore import Qt, QPoint
+from PySide6.QtGui import QAction, QCursor, QIcon
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTableWidget,
-    QTableWidgetItem, QMessageBox, QInputDialog
+    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
+    QTableWidget, QTableWidgetItem, QMessageBox, QMenu,
+    QHeaderView, QStyle
 )
-from PySide6.QtCore import Qt
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
-from languages import tr
+from sqlalchemy.orm import Session
+
 from core.models import User, UserProfile
+from core.services.auth_service import hash_password
+from languages import tr
 from .user_edit_dialog import UserEditDialog
-from ui.window_flags import apply_window_controls
 
-from PySide6.QtWidgets import QAbstractItemView
-from core.services.user_service import delete_user
-from .registration_dialog import RegistrationDialog
+
+# ---------- Übersetzungs-Helfer ----------
+def T(key: str, lang: str, de_fallback: str) -> str:
+    """Gibt Übersetzung zurück, oder deutschen Fallback,
+    wenn keine Translation existiert (tr(key) == key)."""
+    val = tr(key, lang)
+    return val if val and val != key else de_fallback
+
+
+# ---------- Icon-Helfer ----------
+def _std_icon(name: str) -> QIcon:
+    style = QDialog().style()
+    mp = {
+        "add": QStyle.StandardPixmap.SP_DialogYesButton,
+        "edit": QStyle.StandardPixmap.SP_FileDialogDetailedView,
+        "delete": QStyle.StandardPixmap.SP_TrashIcon,
+        "refresh": QStyle.StandardPixmap.SP_BrowserReload,
+        "key": QStyle.StandardPixmap.SP_DialogResetButton,
+    }.get(name, QStyle.StandardPixmap.SP_DesktopIcon)
+    return style.standardIcon(mp)
+
+
 class UserAdminDialog(QDialog):
-    """
-    Benutzerverwaltung (Admin) – Spaltenreihenfolge:
-    ID | Benutzername | Rolle | Aktiv | Letzter Login | Sprache | Name | Geburtstag | Telefon | E-Mail | Mitarbeiter-ID | Arbeitgeber | AHV-Nr.
-    """
+    # Spaltenindizes
+    COL_ID = 0
+    COL_USERNAME = 1
+    COL_ROLE = 2
+    COL_ACTIVE = 3
+    COL_LAST_LOGIN = 4
+    COL_LOCALE = 5
+    COL_FIRST = 6
+    COL_LAST = 7
+    COL_BDAY = 8
+    COL_PHONE = 9
+    COL_EMAIL = 10
+    COL_EMP_ID = 11
+    COL_EMPLOYER = 12
+    COL_AHV = 13
 
-    COL_ID=0; COL_USERNAME=1; COL_ROLE=2; COL_ACTIVE=3; COL_LASTLOGIN=4; COL_LOCALE=5
-    COL_NAME=6; COL_BDAY=7; COL_PHONE=8; COL_EMAIL=9; COL_EMP_ID=10; COL_EMPLOYER=11; COL_AHV=12
+    COL_KEYS: List[str] = [
+        "id", "username", "role", "active", "last_login", "locale",
+        "first_name", "last_name", "birthday", "phone", "email",
+        "employee_id", "employer", "ahv_number",
+    ]
 
-    def __init__(self, session_factory: sessionmaker, lang: str="de", parent=None, current_user_id: int | None=None):
+    def __init__(self, session_factory, lang="de", parent=None, current_user_id=None):
         super().__init__(parent)
         self.session_factory = session_factory
         self.lang = lang
         self.current_user_id = current_user_id
-        self.setWindowTitle(tr("admin_users.title", self.lang) if tr("admin_users.title", self.lang) != "admin_users.title" else "Benutzerverwaltung")
-        self.setSizeGripEnabled(True)
+        self.setWindowTitle(T("admin.users.title", lang, "Benutzerverwaltung"))
         self._build()
         self._reload()
-        self.adjustSize()
-        self.setSizeGripEnabled(True)  # manuelles Resizing bleibt möglich
-        self.resize(max(self.sizeHint().width(), 1484),  # mind. ~980px Startbreite
-                    self.sizeHint().height())
 
+    # ---------- UI ----------
     def _build(self):
-        apply_window_controls(self)
-        root = QVBoxLayout(self)
+        lay = QVBoxLayout(self)
 
         # Suche + Buttons
-        row = QHBoxLayout()
-        self.ed_search = QLineEdit()
-        self.ed_search.setPlaceholderText(tr("admin_users.search", self.lang) if tr("admin_users.search", self.lang) != "admin_users.search" else "Suche")
-        btn_refresh = QPushButton(tr("admin_users.refresh", self.lang) if tr("admin_users.refresh", self.lang) != "admin_users.refresh" else "Aktualisieren")
-        btn_new     = QPushButton(tr("admin_users.new", self.lang) if tr("admin_users.new", self.lang) != "admin_users.new" else "Neu")
-        btn_edit    = QPushButton(tr("admin_users.edit", self.lang) if tr("admin_users.edit", self.lang) != "admin_users.edit" else "Bearbeiten")
-        btn_delete  = QPushButton(tr("admin_users.delete", self.lang) if tr("admin_users.delete", self.lang) != "admin_users.delete" else "Löschen")
-        row.addWidget(self.ed_search); row.addWidget(btn_refresh); row.addWidget(btn_new); row.addWidget(btn_edit); row.addWidget(btn_delete)
-        root.addLayout(row)
+        top = QHBoxLayout()
+        self.ed_search = QLineEdit(self)
+        self.ed_search.setPlaceholderText(T("admin.users.search", self.lang, "Suche"))
+        self.ed_search.textChanged.connect(self._reload)
+        top.addWidget(self.ed_search)
+
+        self.btn_refresh = QPushButton(T("common.refresh", self.lang, "Aktualisieren"))
+        self.btn_refresh.setIcon(_std_icon("refresh"))
+        self.btn_refresh.setStyleSheet("QPushButton{background:#d0e6ff;}")  # himmelblau
+        self.btn_refresh.clicked.connect(self._reload)
+        top.addWidget(self.btn_refresh)
+
+        self.btn_new = QPushButton(T("common.new", self.lang, "Neu"))
+        self.btn_new.setIcon(_std_icon("add"))
+        self.btn_new.setStyleSheet("QPushButton{background:#bff0bf;}")  # hellgrün
+        self.btn_new.clicked.connect(self._open_new)
+        top.addWidget(self.btn_new)
+
+        self.btn_edit = QPushButton(T("common.edit", self.lang, "Bearbeiten"))
+        self.btn_edit.setIcon(_std_icon("edit"))
+        self.btn_edit.setStyleSheet("QPushButton{background:#e0e0e0;}")  # grau
+        self.btn_edit.clicked.connect(self._open_edit)
+        top.addWidget(self.btn_edit)
+
+        self.btn_pwd = QPushButton(T("admin.users.reset_pwd", self.lang, "Passwort zurücksetzen"))
+        self.btn_pwd.setIcon(_std_icon("key"))
+        self.btn_pwd.setStyleSheet("QPushButton{background:#ffe8a6;}")  # gelb
+        self.btn_pwd.clicked.connect(self._reset_password_selected)
+        top.addWidget(self.btn_pwd)
+
+        self.btn_delete = QPushButton(T("common.delete", self.lang, "Löschen"))
+        self.btn_delete.setIcon(_std_icon("delete"))
+        self.btn_delete.setStyleSheet("QPushButton{background:#ffb3b3;}")  # hellrot
+        self.btn_delete.clicked.connect(self._delete_selected)
+        top.addWidget(self.btn_delete)
+
+        lay.addLayout(top)
 
         # Tabelle
         headers = [
-            "ID",
-            tr("admin_users.username", self.lang) if tr("admin_users.username", self.lang) != "admin_users.username" else "Benutzername",
-            tr("admin_users.role", self.lang) if tr("admin_users.role", self.lang) != "admin_users.role" else "Rolle",
-            tr("admin_users.active", self.lang) if tr("admin_users.active", self.lang) != "admin_users.active" else "Aktiv",
-            tr("admin_users.last_login", self.lang) if tr("admin_users.last_login", self.lang) != "admin_users.last_login" else "Letzter Login",
-            tr("admin_users.locale", self.lang) if tr("admin_users.locale", self.lang) != "admin_users.locale" else "Sprache",
-            tr("admin_users.first_name", self.lang) if tr("admin_users.first_name", self.lang) != "admin_users.first_name" else "Vorname",
-            tr("admin_users.last_name", self.lang) if tr("admin_users.last_name", self.lang) != "admin_users.last_name" else "Nachname",
-            tr("admin_users.birthday", self.lang) if tr("admin_users.birthday", self.lang) != "admin_users.birthday" else "Geburtstag",
-            tr("admin_users.phone", self.lang) if tr("admin_users.phone", self.lang) != "admin_users.phone" else "Telefon",
-            tr("admin_users.email", self.lang) if tr("admin_users.email", self.lang) != "admin_users.email" else "E-Mail",
-            tr("profile.employee_id", self.lang) if tr("profile.employee_id", self.lang) != "profile.employee_id" else "Mitarbeiter-ID",
-            tr("profile.employer", self.lang) if tr("profile.employer", self.lang) != "profile.employer" else "Arbeitgeber",
-            tr("profile.ahv_number", self.lang) if tr("profile.ahv_number", self.lang) != "profile.ahv_number" else "AHV-Nr."
+            T("admin.users.col.id", self.lang, "ID"),
+            T("admin.users.col.username", self.lang, "Benutzername"),
+            T("admin.users.col.role", self.lang, "Rolle"),
+            T("admin.users.col.active", self.lang, "Aktiv"),
+            T("admin.users.col.last_login", self.lang, "Letzter Login"),
+            T("admin.users.col.locale", self.lang, "Sprache"),
+            T("admin.users.col.first_name", self.lang, "Vorname"),
+            T("admin.users.col.last_name", self.lang, "Nachname"),
+            T("admin.users.col.birthday", self.lang, "Geburtstag"),
+            T("admin.users.col.phone", self.lang, "Telefon"),
+            T("admin.users.col.email", self.lang, "E-Mail"),
+            T("admin.users.col.emp_id", self.lang, "Mitarbeiter-ID"),
+            T("admin.users.col.employer", self.lang, "Arbeitgeber"),
+            T("admin.users.col.ahv", self.lang, "AHV-Nr."),
         ]
 
-        self.table = QTableWidget(0, len(headers))
+        self.table = QTableWidget(self)
+        self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
-        self.table.setSelectionBehavior(self.table.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(self.table.SelectionMode.SingleSelection)
-        self.table.setEditTriggers(self.table.EditTrigger.NoEditTriggers)
-        self.table.setSortingEnabled(True)
-        self.table.horizontalHeader().setStretchLastSection(True)
-        root.addWidget(self.table)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        self.table.itemDoubleClicked.connect(lambda *_: self._open_edit())
 
-        # Signals
-        btn_refresh.clicked.connect(self._reload)
-        btn_new.clicked.connect(self._new)
-        btn_edit.clicked.connect(self._edit_selected)
-        btn_delete.clicked.connect(self._delete_selected)
-        self.ed_search.textChanged.connect(self._reload)
+        # WICHTIG: Zeilennummern ausblenden (vermeidet Verwechslung mit ID)
+        self.table.verticalHeader().setVisible(False)
 
+        hh = self.table.horizontalHeader()
+        hh.setStretchLastSection(True)
+        hh.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        hh.setDefaultSectionSize(130)
+
+        lay.addWidget(self.table)
+
+        # Kontextmenü
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._open_ctx)
+
+        self.resize(1120, 530)
+
+    # ---------- Data ----------
     def _reload(self):
-        q = (self.ed_search.text() or "").strip().lower()
+        query = (self.ed_search.text() or "").strip().lower()
 
-        with self.session_factory() as s:
+        with self.session_factory() as s:  # type: Session
             users = s.execute(select(User).order_by(User.id.asc())).scalars().all()
             profs = {p.user_id: p for p in s.execute(select(UserProfile)).scalars().all()}
 
+        self.table.setSortingEnabled(False)
         self.table.setRowCount(0)
 
         for u in users:
             p = profs.get(u.id)
+            row_vals = {
+                "id": str(u.id),
+                "username": u.username or "",
+                "role": (u.role or "").upper(),
+                "active": "1" if getattr(u, "is_active", True) else "0",
+                "last_login": self._fmt_dt(getattr(u, "last_login", None)),
+                "locale": (p.locale if p else "") or "",
+                "first_name": (p.first_name if p else "") or "",
+                "last_name": (p.last_name if p else "") or "",
+                "birthday": p.birthday.isoformat() if (p and p.birthday) else "",
+                "phone": (p.phone or "") if p else "",
+                "email": (p.email or "") if p else "",
+                "employee_id": (p.employee_id or "") if p else "",
+                "employer": (p.employer or "") if p else "",
+                "ahv_number": (p.ahv_number or "") if p else "",
+            }
 
-            # "Letzter Login" sauber formatieren
-            ll = getattr(u, "last_login", None)
-            if isinstance(ll, _dt):
-                last_login_text = ll.strftime("%Y-%m-%d %H:%M")
-            elif ll:
-                last_login_text = str(ll)
-            else:
-                last_login_text = ""
-
-            row = [
-                str(u.id),
-                u.username or "",
-                (u.role or "").upper(),
-                "1" if getattr(u, "is_active", True) else "0",
-                last_login_text,
-                (p.locale if p else "") or "",
-                (p.first_name if p else "") or "",
-                (p.last_name if p else "") or "",
-                (p.birthday.isoformat() if (p and p.birthday) else ""),
-                (p.phone or "") if p else "",
-                (p.email or "") if p else "",
-                (str(p.employee_id) if (p and p.employee_id is not None) else ""),
-                (p.employer or "") if p else "",
-                (p.ahv_number or "") if p else "",
-            ]
-
-            # Filter
-            if q and not any(q in (v or "").lower() for v in row):
+            if query and not any(query in (v or "").lower() for v in row_vals.values()):
                 continue
 
             r = self.table.rowCount()
             self.table.insertRow(r)
-            for c, val in enumerate(row):
-                it = QTableWidgetItem(val)
-                if c == 0:  # ID in UserRole mitschleppen
-                    it.setData(Qt.UserRole, u.id)
+            for c, key in enumerate(self.COL_KEYS):
+                text = row_vals.get(key, "")
+                it = QTableWidgetItem(text)
+                if c == self.COL_ID:
+                    it.setData(Qt.ItemDataRole.UserRole, u.id)
+                    it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 self.table.setItem(r, c, it)
 
+        self.table.setSortingEnabled(True)
+        self.table.sortItems(self.COL_ID, Qt.SortOrder.AscendingOrder)
         self.table.resizeColumnsToContents()
 
-    def _selected_ids(self) -> list[int]:
-        rows = sorted({idx.row() for idx in self.table.selectedIndexes()})
-        ids = []
-        for r in rows:
-            it = self.table.item(r, 0)
-            if it and it.data(Qt.ItemDataRole.UserRole) is not None:
-                ids.append(int(it.data(Qt.ItemDataRole.UserRole)))
+    # ---------- Helpers ----------
+    @staticmethod
+    def _fmt_dt(v):
+        if isinstance(v, _dt):
+            return v.strftime("%Y-%m-%d %H:%M")
+        return str(v or "")
+
+    def _selected_user_ids(self) -> list[int]:
+        ids: list[int] = []
+        sel = self.table.selectionModel().selectedRows()
+        for idx in sel:
+            it = self.table.item(idx.row(), self.COL_ID)
+            if not it:
+                continue
+            uid = it.data(Qt.ItemDataRole.UserRole)
+            if uid is None:
+                try:
+                    uid = int(it.text())
+                except Exception:
+                    uid = None
+            if isinstance(uid, int):
+                ids.append(uid)
         return ids
 
-    def _current_user_id(self) -> int | None:
-        r = self.table.currentRow()
-        if r < 0: return None
-        it = self.table.item(r, 0)
-        return int(it.data(Qt.UserRole)) if it else None
-
-    def _new(self):
-        dlg = RegistrationDialog(self.session_factory, lang=self.lang, parent=self)
+    # ---------- Actions ----------
+    def _open_new(self):
+        # FIX: UserEditDialog erwartet user_id als Pflichtparameter
+        dlg = UserEditDialog(self.session_factory, user_id=None, lang=self.lang, parent=self)
         if dlg.exec():
             self._reload()
 
-    def _load(self):
-        hdr = self.table.horizontalHeader()
-        sort_col, sort_order = hdr.sortIndicatorSection(), hdr.sortIndicatorOrder()
-        sorting_on = self.table.isSortingEnabled()
-        if sorting_on: self.table.setSortingEnabled(False)
-
-        q = (self.edit_search.text() or "").strip().lower()
-        with self.session_factory() as s:
-            users = s.execute(select(User)).scalars().all()
-            profs = {p.user_id: p for p in s.execute(select(UserProfile)).scalars().all()}
-
-        rows=[]
-        for u in users:
-            p = profs.get(u.id)
-            if q:
-                cand = " ".join([u.username or "", (p.last_name or ""), (p.first_name or ""), (p.email or ""), (p.employer or "")]).lower()
-                if q not in cand: continue
-            rows.append((u,p))
-
-        self.table.setRowCount(0)
-
-        def _fmt_bday_and_sort(p: UserProfile | None)->tuple[str,int]:
-            if not p or getattr(p,"birthday",None) is None: return ("",0)
-            val = p.birthday
-            if isinstance(val,_date): return (val.strftime("%Y-%m-%d"), int(val.strftime("%Y%m%d")))
-            try:
-                s=str(val)
-                if len(s)==8 and s.isdigit(): return (f"{s[:4]}-{s[4:6]}-{s[6:8]}", int(s))
-            except Exception: pass
-            return (str(val),0)
-
-        def _fmt_last_login(val)->tuple[str,str]:
-            if val is None: return ("","")
-            if isinstance(val,_dt): return (val.strftime("%Y-%m-%d %H:%M"), val.isoformat())
-            s=str(val); return (s,s)
-
-        for u,p in rows:
-            r=self.table.rowCount(); self.table.insertRow(r)
-            def set_item(c:int, txt:str, sort_val=None):
-                it=QTableWidgetItem(txt if txt is not None else "")
-                if sort_val is not None: it.setData(Qt.EditRole, sort_val)
-                self.table.setItem(r,c,it)
-
-            # Füllen in gewünschter Reihenfolge
-            set_item(self.COL_ID, str(u.id), int(u.id))
-            set_item(self.COL_USERNAME, u.username or "")
-            set_item(self.COL_ROLE, (u.role or "").upper())
-            active = getattr(u,"is_active", getattr(u,"active",True))
-            set_item(self.COL_ACTIVE, "Ja" if active else "Nein", 1 if active else 0)
-            disp_login, sort_login = _fmt_last_login(getattr(u,"last_login",None))
-            set_item(self.COL_LASTLOGIN, disp_login, sort_login)
-            set_item(self.COL_LOCALE, p.locale if p and p.locale else "")
-            full_name = f"{(p.last_name or '')} {(p.first_name or '')}".strip() if p else ""
-            set_item(self.COL_NAME, full_name)
-            disp_bday, ymd = _fmt_bday_and_sort(p)
-            set_item(self.COL_BDAY, disp_bday, ymd)
-            set_item(self.COL_PHONE, p.phone if p else "")
-            set_item(self.COL_EMAIL, p.email if p else "")
-            set_item(self.COL_EMP_ID, p.employee_id if p else "")
-            set_item(self.COL_EMPLOYER, p.employer if p else "")
-            set_item(self.COL_AHV, getattr(p,"ahv_number","") if p else "")
-
-        self.table.resizeColumnsToContents()
-        if sorting_on:
-            self.table.setSortingEnabled(True)
-            try: self.table.sortItems(sort_col, sort_order)
-            except Exception: pass
-
-    # --- Aktionen (inkl. „Neuer Benutzer“) ---
-    def _current_selected_user_id(self)->int|None:
-        r=self.table.currentRow()
-        if r<0: return None
-        it=self.table.item(r,self.COL_ID)
-        return int(it.text()) if it else None
-
-
-    def _new_user(self):
-        # Einfache Prompts für Username, Rolle, Passwort
-        uname, ok = QInputDialog.getText(self, tr("admin_users.new", self.lang), tr("admin_users.username", self.lang) if tr("admin_users.username", self.lang)!="admin_users.username" else "Benutzername:")
-        if not ok or not uname.strip(): return
-        role, ok = QInputDialog.getText(self, tr("admin_users.new", self.lang), tr("admin_users.role", self.lang) if tr("admin_users.role", self.lang)!="admin_users.role" else "Rolle (USER/HR/ADMIN):")
-        if not ok or not role.strip(): role="USER"
-        role = role.strip().upper()
-        if role not in ("USER","HR","ADMIN"): role="USER"
-        pw, ok = QInputDialog.getText(self, tr("admin_users.new", self.lang), "Temporäres Passwort:")
-        if not ok or not pw: return
-
-        from core.services.log_service import log_error
-        try:
-            with self.session_factory() as s:
-                # existiert?
-                if s.execute(select(User).where(User.username==uname)).scalar_one_or_none():
-                    QMessageBox.warning(self, tr("admin_users.title", self.lang), "Benutzername existiert bereits.")
-                    return
-                u = User(username=uname, role=role)
-                # Aktiv setzen
-                if hasattr(u,"is_active"): u.is_active=True
-                if hasattr(u,"active"): u.active=True
-                # Must change PW on first login (falls Feld vorhanden)
-                if hasattr(u,"must_change_password"): u.must_change_password=True
-
-                # Passwort setzen (robust)
-                try:
-                    from core.services.auth_service import set_password as _set_pw
-                    _set_pw(s, u, pw)
-                except Exception:
-                    try:
-                        from core.services.auth_service import hash_password as _hash
-                        u.password_hash = _hash(pw)
-                    except Exception as ex:
-                        log_error("Passwort-Hashing fehlgeschlagen", exc=ex)
-                        u.password_hash = None  # als Notfall: wird beim ersten Login zum Reset gezwungen
-
-                s.add(u); s.flush()
-                # Profil anlegen
-                if not s.execute(select(UserProfile).where(UserProfile.user_id==u.id)).scalar_one_or_none():
-                    s.add(UserProfile(user_id=u.id))
-                s.commit()
-            QMessageBox.information(self, tr("admin_users.title", self.lang), "Benutzer angelegt.")
-            self._load()
-        except Exception as ex:
-            log_error("Fehler beim Anlegen eines neuen Benutzers", exc=ex)
-            QMessageBox.critical(self, tr("admin_users.title", self.lang), str(ex))
-
-    def _edit_selected(self):
-        ids = self._selected_ids()
+    def _open_edit(self):
+        ids = self._selected_user_ids()
         if not ids:
+            QMessageBox.information(self, "Info", T("admin.users.select_one", self.lang, "Bitte zuerst einen Benutzer auswählen."))
             return
-        for uid in ids:
-            dlg = UserEditDialog(self.session_factory, user_id=uid, lang=self.lang, parent=self)
-            if dlg.exec():
-                pass
+        dlg = UserEditDialog(self.session_factory, user_id=ids[0], lang=self.lang, parent=self)
+        if dlg.exec():
+            self._reload()
+
+    def _reset_password_selected(self):
+        ids = self._selected_user_ids()
+        if not ids:
+            QMessageBox.information(self, "Info", T("admin.users.select_one", self.lang, "Bitte zuerst einen Benutzer auswählen."))
+            return
+        uid = ids[0]
+        default_pwd = T("admin.users.reset_pwd_default", self.lang, "ChangeMe123")
+
+        ok = QMessageBox.question(
+            self,
+            T("admin.users.reset_pwd", self.lang, "Passwort zurücksetzen"),
+            f'{T("admin.users.reset_pwd_confirm", self.lang, "Passwort wirklich zurücksetzen?")}\n\n'
+            f'User-ID: {uid}\nNeues Passwort: {default_pwd}',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if ok != QMessageBox.StandardButton.Yes:
+            return
+
+        with self.session_factory() as s:
+            u = s.get(User, uid)
+            if not u:
+                QMessageBox.warning(self, "Fehler", "Benutzer nicht gefunden.")
+                return
+            u.password_hash = hash_password(default_pwd)
+            s.add(u)
+            s.commit()
+
+        QMessageBox.information(self, "OK", T("admin.users.reset_pwd_done", self.lang, "Passwort zurückgesetzt."))
         self._reload()
 
     def _delete_selected(self):
-        ids = self._selected_ids()
+        ids = self._selected_user_ids()
         if not ids:
+            QMessageBox.information(self, "Info", T("admin.users.select_any", self.lang, "Bitte Benutzer auswählen."))
             return
-        if QMessageBox.question(self, self.windowTitle(), f"{len(ids)} {tr('admin_users.delete', self.lang) if tr('admin_users.delete', self.lang)!='admin_users.delete' else 'löschen'}?") != QMessageBox.StandardButton.Yes:
+        if self.current_user_id in ids:
+            QMessageBox.warning(self, "Achtung", T("admin.users.cant_delete_self", self.lang, "Der aktuell angemeldete Benutzer kann nicht gelöscht werden."))
             return
+
+        ok = QMessageBox.question(
+            self,
+            T("common.delete", self.lang, "Löschen"),
+            T("admin.users.delete_confirm", self.lang, "Sollen die ausgewählten Benutzer gelöscht werden?") + f" ({len(ids)}x)",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if ok != QMessageBox.StandardButton.Yes:
+            return
+
         with self.session_factory() as s:
             for uid in ids:
-                delete_user(s, uid)
+                u = s.get(User, uid)
+                if u:
+                    s.delete(u)
+            s.commit()
         self._reload()
+
+    # ---------- Kontextmenü ----------
+    def _open_ctx(self, pos: QPoint):
+        menu = QMenu(self)
+
+        act_new = QAction(_std_icon("add"), T("common.new", self.lang, "Neu"), self)
+        act_new.triggered.connect(self._open_new)
+        menu.addAction(act_new)
+
+        act_edit = QAction(_std_icon("edit"), T("common.edit", self.lang, "Bearbeiten"), self)
+        act_edit.triggered.connect(self._open_edit)
+        menu.addAction(act_edit)
+
+        act_pwd = QAction(_std_icon("key"), T("admin.users.reset_pwd", self.lang, "Passwort zurücksetzen"), self)
+        act_pwd.triggered.connect(self._reset_password_selected)
+        menu.addAction(act_pwd)
+
+        act_del = QAction(_std_icon("delete"), T("common.delete", self.lang, "Löschen"), self)
+        act_del.triggered.connect(self._delete_selected)
+        menu.addAction(act_del)
+
+        menu.addSeparator()
+
+        act_ref = QAction(_std_icon("refresh"), T("common.refresh", self.lang, "Aktualisieren"), self)
+        act_ref.triggered.connect(self._reload)
+        menu.addAction(act_ref)
+
+        menu.exec(QCursor.pos())

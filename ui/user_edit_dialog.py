@@ -1,21 +1,25 @@
 from __future__ import annotations
+
 from typing import Optional
+
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QGridLayout, QGroupBox, QFormLayout,
     QLineEdit, QDateEdit, QComboBox, QPushButton, QHBoxLayout, QDoubleSpinBox, QMessageBox, QCheckBox, QFileDialog
 )
-from PySide6.QtCore import QDate
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
-from languages import tr, LANG
+from sqlalchemy.orm import sessionmaker
+
 from core.models import User, UserProfile
-from PySide6.QtWidgets import QLayout
+from core.services.auth_service import hash_password
 from core.utils.i18n import t as _t
+from languages import tr, LANG
+
 
 def T(key: str, lang: str, fallback: str) -> str:
     """Übersetze key; wenn die Sprache den key nicht kennt, nimm fallback."""
     v = _t(key, lang)
     return v if v != key else fallback
+
 
 class UserEditDialog(QDialog):
     """
@@ -23,12 +27,14 @@ class UserEditDialog(QDialog):
       [Benutzerdaten] | [Adresse/Kontakt] | [Bank & Lohn] | [Anstellung]
     - AHV-Nr. + Stundenlohn editierbar
     """
+
     def __init__(self, session_factory: sessionmaker, user_id: int, lang: str = "de", parent=None):
         super().__init__(parent)
         self.session_factory = session_factory
         self.user_id = user_id
         self.lang = lang
-        self.setWindowTitle(tr("admin_users.title", self.lang) if tr("admin_users.title", self.lang) != "admin_users.title" else "Benutzerverwaltung")
+        self.setWindowTitle(tr("admin_users.title", self.lang) if tr("admin_users.title",
+                                                                     self.lang) != "admin_users.title" else "Benutzerverwaltung")
         self.setSizeGripEnabled(True)
         self._avatar_tmp: Optional[str] = None
         self._build()
@@ -163,98 +169,150 @@ class UserEditDialog(QDialog):
         self.btn_avatar_remove.clicked.connect(self._remove_avatar)
 
     def _choose_avatar(self):
-        fn, _ = QFileDialog.getOpenFileName(self, tr("profile.choose_file", self.lang), "", "Images (*.png *.jpg *.jpeg)")
+        fn, _ = QFileDialog.getOpenFileName(self, tr("profile.choose_file", self.lang), "",
+                                            "Images (*.png *.jpg *.jpeg)")
         if fn: self._avatar_tmp = fn
-    def _remove_avatar(self): self._avatar_tmp = "__REMOVE__"
+
+    def _remove_avatar(self):
+        self._avatar_tmp = "__REMOVE__"
 
     def _load(self):
+        """
+        Füllt die Maske. Bei user_id=None (Neu) KEIN DB-Insert!
+        """
+        # Neu-Modus -> nur Defaults in die Felder, keine DB-Operation
+        if self.user_id is None:
+            # sinnvolle Defaults
+            try:
+                self.cmb_role.setCurrentText("USER")
+            except Exception:
+                pass
+            try:
+                self.chk_active.setChecked(True)
+            except Exception:
+                pass
+            try:
+                # Sprache/Locale auf 'de'
+                if hasattr(self, "cmb_locale"):
+                    self.cmb_locale.setCurrentText("de")
+            except Exception:
+                pass
+            # numerische Felder o.ä. kannst du hier ebenfalls vorbelegen
+            return
+
+        # Edit-Modus -> Daten laden und in Felder schreiben
         with self.session_factory() as s:
-            u = s.execute(select(User).where(User.id == self.user_id)).scalar_one_or_none()
-            p = s.execute(select(UserProfile).where(UserProfile.user_id == self.user_id)).scalar_one_or_none()
-            if p is None:
-                p = UserProfile(user_id=self.user_id); s.add(p); s.commit()
+            u = s.get(User, self.user_id)
+            if not u:
+                QMessageBox.warning(self, "Fehler", f"Benutzer {self.user_id} nicht gefunden.")
+                return
 
-        # Benutzer
-        self.ed_username.setText(u.username if u else ""); self.cb_role.setCurrentText((u.role or "USER").upper() if u else "USER")
-        active = getattr(u, "is_active", True); self.cb_active.setChecked(bool(active))
+            # Profil ermitteln (NICHT erstellen)
+            p = s.execute(
+                select(UserProfile).where(UserProfile.user_id == self.user_id)
+            ).scalars().first()
 
-        # Person
-        def _select_by_data(combo: QComboBox, key: Optional[str]):
-            if key is None: return
-            for i in range(combo.count()):
-                if combo.itemData(i) == key: combo.setCurrentIndex(i); break
+            # --- Benutzerdaten in UI ---
+            if hasattr(self, "ed_username"): self.ed_username.setText(u.username or "")
+            if hasattr(self, "cmb_role"): self.cmb_role.setCurrentText((u.role or "").upper())
+            if hasattr(self, "chk_active"): self.chk_active.setChecked(getattr(u, "is_active", True))
 
-        self.ed_first.setText(p.first_name or ""); self.ed_last.setText(p.last_name or "")
-        if p.birthday: self.date_birthday.setDate(QDate(p.birthday.year, p.birthday.month, p.birthday.day))
-        _select_by_data(self.cb_civil, p.civil_status or None)
-        self.ed_permit.setText(p.permit_status or "")
-
-        # Kontakt
-        self.combo_locale.setCurrentText(p.locale or "de")
-        self.ed_region.setText(p.region_code or ""); self.ed_address.setText(p.address or "")
-        self.ed_postcode.setText(p.postcode or ""); self.ed_city.setText(p.city or "")
-        self.ed_email.setText(p.email or ""); self.ed_phone.setText(p.phone or "")
-
-        # AHV + Lohn
-        self.ed_ahv.setText(getattr(p, "ahv_number", None) or "")
-        self.sp_hourly.setValue(float(p.hourly_brutto or 0.0))
-
-        # Bank
-        self.ed_bank_name.setText(p.bank_name or ""); self.ed_bank_addr.setText(p.bank_address or "")
-        self.ed_bank_zip.setText(p.bank_zip or ""); self.ed_bank_city.setText(p.bank_city or "")
-        self.ed_bank_country.setText(p.bank_country or ""); self.ed_account_no.setText(p.account_number or "")
-        self.ed_iban.setText(p.iban or "")
-
-        # Anstellung
-        self.ed_emp_id.setText(p.employee_id or ""); self.ed_emp_code.setText(p.employee_code or "")
-        self.ed_employer.setText(p.employer or "")
-        if p.employment_start:
-            self.date_employed.setDate(QDate(p.employment_start.year, p.employment_start.month, p.employment_start.day))
+            # --- Profildaten in UI (nur wenn vorhanden) ---
+            if p:
+                if hasattr(self, "cmb_locale") and (p.locale or ""):
+                    self.cmb_locale.setCurrentText(p.locale)
+                if hasattr(self, "ed_first"): self.ed_first.setText(p.first_name or "")
+                if hasattr(self, "ed_last"): self.ed_last.setText(p.last_name or "")
+                if hasattr(self, "ed_phone"): self.ed_phone.setText(p.phone or "")
+                if hasattr(self, "ed_email"): self.ed_email.setText(p.email or "")
+                if hasattr(self, "ed_address"): self.ed_address.setText(p.address or "")
+                if hasattr(self, "ed_postcode"): self.ed_postcode.setText((p.postal_code or ""))
+                if hasattr(self, "ed_city"): self.ed_city.setText(p.city or "")
+                if hasattr(self, "ed_employer"): self.ed_employer.setText(p.employer or "")
+                if hasattr(self, "ed_employee_id"): self.ed_employee_id.setText(p.employee_id or "")
+                if hasattr(self, "ed_ahv"): self.ed_ahv.setText(p.ahv_number or "")
+                # weitere Felder analog …
 
     def _save(self):
+        """
+        Speichert Benutzer + Profil.
+        - Neu: erst User anlegen, ID übernehmen, dann Profil anlegen.
+        - Edit: vorhandene Datensätze aktualisieren; Profil ggf. anlegen.
+        """
+        # Werte aus UI
+        username = (self.ed_username.text() if hasattr(self, "ed_username") else "").strip()
+        role = (self.cmb_role.currentText() if hasattr(self, "cmb_role") else "USER") or "USER"
+        is_active = bool(self.chk_active.isChecked()) if hasattr(self, "chk_active") else True
+        locale = (self.cmb_locale.currentText() if hasattr(self, "cmb_locale") else "de") or "de"
+
+        first = (self.ed_first.text() if hasattr(self, "ed_first") else "").strip()
+        last = (self.ed_last.text() if hasattr(self, "ed_last") else "").strip()
+        phone = (self.ed_phone.text() if hasattr(self, "ed_phone") else "").strip()
+        email = (self.ed_email.text() if hasattr(self, "ed_email") else "").strip()
+        address = (self.ed_address.text() if hasattr(self, "ed_address") else "").strip()
+        postal_code = (self.ed_postcode.text() if hasattr(self, "ed_postcode") else "").strip()
+        city = (self.ed_city.text() if hasattr(self, "ed_city") else "").strip()
+        employer = (self.ed_employer.text() if hasattr(self, "ed_employer") else "").strip()
+        employee_id = (self.ed_employee_id.text() if hasattr(self, "ed_employee_id") else "").strip()
+        ahv = (self.ed_ahv.text() if hasattr(self, "ed_ahv") else "").strip()
+
+        if not username:
+            QMessageBox.warning(self, "Fehler", "Benutzername darf nicht leer sein.")
+            return
+
         with self.session_factory() as s:
-            u = s.execute(select(User).where(User.id == self.user_id)).scalar_one_or_none()
-            if u:
-                u.role = self.cb_role.currentText().upper()
-                if hasattr(u, "is_active"): u.is_active = self.cb_active.isChecked()
+            # --- Neu anlegen ---
+            if self.user_id is None:
+                # einfachen Default setzen; bei Bedarf Dialog für Passwort bauen
+                default_pwd = "ChangeMe123"
+                u = User(username=username, role=role, is_active=is_active, password_hash=hash_password(default_pwd))
+                s.add(u)
+                s.flush()  # erzeugt ID
+                self.user_id = u.id
 
-            p = s.execute(select(UserProfile).where(UserProfile.user_id == self.user_id)).scalar_one_or_none()
-            if p is None:
-                p = UserProfile(user_id=self.user_id); s.add(p)
+                # Profil anlegen
+                p = UserProfile(
+                    user_id=self.user_id,
+                    locale=locale,
+                    first_name=first, last_name=last,
+                    phone=phone, email=email,
+                    address=address, postal_code=postal_code, city=city,
+                    employer=employer, employee_id=employee_id,
+                    ahv_number=ahv,
+                )
+                s.add(p)
+                s.commit()
+                QMessageBox.information(self, "OK", "Benutzer erstellt.")
+                self.accept()
+                return
 
-            def _txt(w: QLineEdit):
-                t = w.text().strip()
-                return t or None
+            # --- Update vorhandener Datensätze ---
+            u = s.get(User, self.user_id)
+            if not u:
+                QMessageBox.warning(self, "Fehler", f"Benutzer {self.user_id} nicht gefunden.")
+                return
+            u.username = username
+            u.role = role
+            u.is_active = is_active
+            s.add(u)
 
-            p.first_name = _txt(self.ed_first); p.last_name  = _txt(self.ed_last)
-            d = self.date_birthday.date(); p.birthday = d.toPython() if d and d.isValid() else None
-            p.civil_status = self.cb_civil.currentData(); p.permit_status = _txt(self.ed_permit)
-            p.locale = self.combo_locale.currentText(); p.region_code = _txt(self.ed_region)
-            p.address = _txt(self.ed_address); p.postcode = _txt(self.ed_postcode)
-            p.city = _txt(self.ed_city); p.email = _txt(self.ed_email); p.phone = _txt(self.ed_phone)
+            # Profil holen/ggf. anlegen
+            p = s.execute(select(UserProfile).where(UserProfile.user_id == self.user_id)).scalars().first()
+            if not p:
+                p = UserProfile(user_id=self.user_id)
+            p.locale = locale
+            p.first_name = first
+            p.last_name = last
+            p.phone = phone
+            p.email = email
+            p.address = address
+            p.postal_code = postal_code
+            p.city = city
+            p.employer = employer
+            p.employee_id = employee_id
+            p.ahv_number = ahv
 
-            # AHV + Lohn
-            p.ahv_number = _txt(self.ed_ahv); p.hourly_brutto = float(self.sp_hourly.value())
-
-            # Bank
-            p.bank_name = _txt(self.ed_bank_name); p.bank_address = _txt(self.ed_bank_addr)
-            p.bank_zip = _txt(self.ed_bank_zip); p.bank_city = _txt(self.ed_bank_city)
-            p.bank_country = _txt(self.ed_bank_country); p.account_number = _txt(self.ed_account_no)
-            p.iban = _txt(self.ed_iban)
-
-            # Anstellung
-            p.employee_id = _txt(self.ed_emp_id); p.employee_code = _txt(self.ed_emp_code)
-            p.employer = _txt(self.ed_employer)
-            de = self.date_employed.date(); p.employment_start = de.toPython() if de and de.isValid() else None
-
+            s.add(p)
             s.commit()
-
-        QMessageBox.information(
-            self,
-            tr("admin_users.title", self.lang) if tr("admin_users.title",
-                                                     self.lang) != "admin_users.title" else "Benutzerverwaltung",
-            tr("dialogs.common.saved", self.lang) if tr("dialogs.common.saved",
-                                                        self.lang) != "dialogs.common.saved" else "Gespeichert."
-        )
-
-        self.accept()
+            QMessageBox.information(self, "OK", "Änderungen gespeichert.")
+            self.accept()

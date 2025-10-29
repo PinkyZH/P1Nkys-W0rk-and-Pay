@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QComboBox, QPushButton, QHBoxLayout
-from PySide6.QtCore import Qt  # <- wichtig fürs Alignment
 from sqlalchemy.orm import sessionmaker
+
 from core.services.auth_service import authenticate
 from core.services.settings_service import get_lang, set_lang
 from languages import tr
@@ -89,6 +90,3 @@ class LoginDialog(QDialog):
                 self.ed_user.setText(dlg.get_created_username())
             except Exception:
                 pass
-
-
-

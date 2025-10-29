@@ -1,41 +1,40 @@
 from __future__ import annotations
+
+import calendar
+import json
+from datetime import date
+
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QComboBox, QSpinBox, QPushButton, QLabel,
-    QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox, QFileDialog, QFrame
+    QComboBox, QSpinBox, QLabel,
+    QFileDialog, QFrame
 )
-from sqlalchemy.orm import sessionmaker
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, \
+    QMessageBox
 from sqlalchemy import select
-from languages import tr
+from sqlalchemy.orm import sessionmaker
+
+from core.models import PayrollRun
+from core.models import User, UserProfile
+from core.services.log_service import log_activity, log_error
 from core.services.payroll_service import (
     recalc_and_save, export_pdf, export_xlsx_range, lock_run, unlock_run
 )
-from core.models import User, PayrollRun, UserProfile
-from core.utils.users import user_label
-from core.services.log_service import log_activity, log_error
-from datetime import date, timedelta
-import calendar
+from languages import tr
 from ui.window_flags import apply_window_controls
-import json
-
-from datetime import date as _date, datetime as _dt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QInputDialog
-from PySide6.QtCore import Qt
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
-from core.utils.i18n import t
-from core.utils.formatting import fmt_date, fmt_datetime
-from core.models import User, UserProfile
-from .user_edit_dialog import UserEditDialog
 
 # Fallback-Übersetzungen, falls languages.py (calendar.entry_types.*) fehlt
 _TYPES_FALLBACK = {
-    "de": {"work":"Arbeit","vacation":"Urlaub","sick":"Krank","holiday":"Feiertag","off":"Frei","other":"Sonstiges",
-           "appointment":"Arzttermin","hospital":"Spital"},
-    "en": {"work":"Work","vacation":"Vacation","sick":"Sick","holiday":"Holiday","off":"Off","other":"Other",
-           "appointment":"Appointment","hospital":"Hospital"},
-    "sr": {"work":"Rad","vacation":"Odmor","sick":"Bolovanje","holiday":"Praznik","off":"Slobodno","other":"Ostalo",
-           "appointment":"Pregled","hospital":"Bolnica"},
+    "de": {"work": "Arbeit", "vacation": "Urlaub", "sick": "Krank", "holiday": "Feiertag", "off": "Frei",
+           "other": "Sonstiges",
+           "appointment": "Arzttermin", "hospital": "Spital"},
+    "en": {"work": "Work", "vacation": "Vacation", "sick": "Sick", "holiday": "Holiday", "off": "Off", "other": "Other",
+           "appointment": "Appointment", "hospital": "Hospital"},
+    "sr": {"work": "Rad", "vacation": "Odmor", "sick": "Bolovanje", "holiday": "Praznik", "off": "Slobodno",
+           "other": "Ostalo",
+           "appointment": "Pregled", "hospital": "Bolnica"},
 }
+
+
 def _type_label(lang: str, code: str) -> str:
     if not code:
         return ""
@@ -48,14 +47,17 @@ def _type_label(lang: str, code: str) -> str:
         return _TYPES_FALLBACK.get(lang, _TYPES_FALLBACK["de"]).get(key, code)
     return txt
 
+
 class PayrollDialog(QDialog):
-    def __init__(self, session_factory: sessionmaker, user_id: int, lang: str = "de", is_admin: bool = False, parent=None):
+    def __init__(self, session_factory: sessionmaker, user_id: int, lang: str = "de", is_admin: bool = False,
+                 parent=None):
         super().__init__(parent)
         self.session_factory = session_factory
         self.current_user_id = user_id
         self.lang = lang
         self.is_admin = is_admin
-        self.setWindowTitle(tr("payroll.title", self.lang) if tr("payroll.title", self.lang) != "payroll.title" else "Monatsabschluss – Abrechnung")
+        self.setWindowTitle(tr("payroll.title", self.lang) if tr("payroll.title",
+                                                                 self.lang) != "payroll.title" else "Monatsabschluss – Abrechnung")
         self.setSizeGripEnabled(True)
         self._build()
         self.adjustSize()
@@ -64,21 +66,23 @@ class PayrollDialog(QDialog):
     def _target_user(self) -> int:
         return self.user_combo.currentData() if self.user_combo is not None else self.current_user_id
 
-    def _ym_from(self) -> tuple[int,int]:
+    def _ym_from(self) -> tuple[int, int]:
         return int(self.spin_year.value()), int(self.spin_month.value())
 
-    def _ym_to(self) -> tuple[int,int]:
+    def _ym_to(self) -> tuple[int, int]:
         return int(self.spin_year_to.value()), int(self.spin_month_to.value())
 
     def _period_label(self) -> str:
-        y1, m1 = self._ym_from(); y2, m2 = self._ym_to()
+        y1, m1 = self._ym_from();
+        y2, m2 = self._ym_to()
         if (y1, m1) == (y2, m2):
             return f"{y1}-{m1:02d}"
         return f"{y1}-{m1:02d} bis {y2}-{m2:02d}"
 
-    def _period_dates(self) -> tuple[date,date]:
+    def _period_dates(self) -> tuple[date, date]:
         """Erster Tag Startmonat, letzter Tag Endmonat."""
-        y1, m1 = self._ym_from(); y2, m2 = self._ym_to()
+        y1, m1 = self._ym_from();
+        y2, m2 = self._ym_to()
         start = date(y1, m1, 1)
         last_day = calendar.monthrange(y2, m2)[1]
         end = date(y2, m2, last_day)
@@ -88,7 +92,7 @@ class PayrollDialog(QDialog):
         """Abrechnung_Nachname-Vorname_erstellt-am-YYYY-MM-DD_von_YYYY-MM-DD_bis_YYYY-MM-DD.ext"""
         with self.session_factory() as s:
             u = s.get(User, uid)
-            p = s.execute(select(UserProfile).where(UserProfile.user_id==uid)).scalar_one_or_none()
+            p = s.execute(select(UserProfile).where(UserProfile.user_id == uid)).scalar_one_or_none()
         ln = (p.last_name or "").strip() if p else ""
         fn = (p.first_name or "").strip() if p else (u.username if u else "User")
         start, end = self._period_dates()
@@ -98,7 +102,8 @@ class PayrollDialog(QDialog):
 
     def _month_locked(self, uid: int, y: int, m: int) -> bool:
         with self.session_factory() as s:
-            run = s.execute(select(PayrollRun).where(PayrollRun.user_id==uid, PayrollRun.period_year==y, PayrollRun.period_month==m)).scalar_one_or_none()
+            run = s.execute(select(PayrollRun).where(PayrollRun.user_id == uid, PayrollRun.period_year == y,
+                                                     PayrollRun.period_month == m)).scalar_one_or_none()
             return bool(run and run.is_locked)
 
     def _update_status_frame(self):
@@ -114,7 +119,8 @@ class PayrollDialog(QDialog):
             color = "#d93025"  # rot
             text = "Status: Re-Open (offen)"
         self.status_label.setText(text)
-        self.status_frame.setStyleSheet(f"QFrame#statusFrame {{ border: 3px solid {color}; border-radius: 6px; padding:4px; }}")
+        self.status_frame.setStyleSheet(
+            f"QFrame#statusFrame {{ border: 3px solid {color}; border-radius: 6px; padding:4px; }}")
 
     # ----------------------- UI -----------------------
     def _build(self):
@@ -145,11 +151,20 @@ class PayrollDialog(QDialog):
         else:
             self.user_combo = None
 
-        self.spin_year = QSpinBox();  self.spin_year.setRange(2000, 2100); self.spin_year.setValue(date.today().year)
-        self.spin_month = QSpinBox(); self.spin_month.setRange(1, 12);     self.spin_month.setValue(date.today().month)
-        self.spin_year_to = QSpinBox();  self.spin_year_to.setRange(2000, 2100); self.spin_year_to.setValue(date.today().year)
-        self.spin_month_to = QSpinBox(); self.spin_month_to.setRange(1, 12);     self.spin_month_to.setValue(date.today().month)
-        btn_recalc = QPushButton(tr("payroll.recalc", self.lang) if tr("payroll.recalc", self.lang) != "payroll.recalc" else "Berechnen / Aktualisieren")
+        self.spin_year = QSpinBox();
+        self.spin_year.setRange(2000, 2100);
+        self.spin_year.setValue(date.today().year)
+        self.spin_month = QSpinBox();
+        self.spin_month.setRange(1, 12);
+        self.spin_month.setValue(date.today().month)
+        self.spin_year_to = QSpinBox();
+        self.spin_year_to.setRange(2000, 2100);
+        self.spin_year_to.setValue(date.today().year)
+        self.spin_month_to = QSpinBox();
+        self.spin_month_to.setRange(1, 12);
+        self.spin_month_to.setValue(date.today().month)
+        btn_recalc = QPushButton(tr("payroll.recalc", self.lang) if tr("payroll.recalc",
+                                                                       self.lang) != "payroll.recalc" else "Berechnen / Aktualisieren")
 
         for w in filter(None, [self.spin_year, self.spin_month, self.spin_year_to, self.spin_month_to, btn_recalc]):
             top.addWidget(w)
@@ -158,15 +173,24 @@ class PayrollDialog(QDialog):
         # Status-Rahmen (zeigt Abgeschlossen/Offen/soeben Re-Open)
         self.status_frame = QFrame(objectName="statusFrame")
         self.status_label = QLabel("Status: —")
-        sbox = QHBoxLayout(self.status_frame); sbox.addWidget(self.status_label); sbox.addStretch(1)
+        sbox = QHBoxLayout(self.status_frame);
+        sbox.addWidget(self.status_label);
+        sbox.addStretch(1)
         layout.addWidget(self.status_frame)
 
         # KPIs
-        self.lbl_hours  = QLabel((tr("payroll.hours_total", self.lang) if tr("payroll.hours_total", self.lang) != "payroll.hours_total" else "Stunden Total") + ": —")
-        self.lbl_entries= QLabel((tr("payroll.entries", self.lang)     if tr("payroll.entries", self.lang)     != "payroll.entries"     else "Einträge") + ": —")
-        self.lbl_gross  = QLabel((tr("payroll.gross", self.lang)       if tr("payroll.gross", self.lang)       != "payroll.gross"       else "Bruttolohn") + ": —")
-        self.lbl_net    = QLabel((tr("payroll.net", self.lang)         if tr("payroll.net", self.lang)         != "payroll.net"         else "Nettolohn") + ": —")
-        layout.addWidget(self.lbl_hours); layout.addWidget(self.lbl_entries); layout.addWidget(self.lbl_gross); layout.addWidget(self.lbl_net)
+        self.lbl_hours = QLabel((tr("payroll.hours_total", self.lang) if tr("payroll.hours_total",
+                                                                            self.lang) != "payroll.hours_total" else "Stunden Total") + ": —")
+        self.lbl_entries = QLabel((tr("payroll.entries", self.lang) if tr("payroll.entries",
+                                                                          self.lang) != "payroll.entries" else "Einträge") + ": —")
+        self.lbl_gross = QLabel((tr("payroll.gross", self.lang) if tr("payroll.gross",
+                                                                      self.lang) != "payroll.gross" else "Bruttolohn") + ": —")
+        self.lbl_net = QLabel(
+            (tr("payroll.net", self.lang) if tr("payroll.net", self.lang) != "payroll.net" else "Nettolohn") + ": —")
+        layout.addWidget(self.lbl_hours);
+        layout.addWidget(self.lbl_entries);
+        layout.addWidget(self.lbl_gross);
+        layout.addWidget(self.lbl_net)
 
         # Breakdown
         self.tbl_bd = QTableWidget(0, 3)
@@ -179,11 +203,17 @@ class PayrollDialog(QDialog):
 
         # Aktionen
         actions = QHBoxLayout()
-        self.btn_pdf   = QPushButton(tr("payroll.pdf", self.lang)  if tr("payroll.pdf", self.lang)  != "payroll.pdf"  else "PDF Lohnschein")
-        self.btn_xlsx  = QPushButton(tr("payroll.xlsx", self.lang) if tr("payroll.xlsx", self.lang) != "payroll.xlsx" else "Excel Lohnschein")
-        self.btn_lock  = QPushButton(tr("payroll.lock", self.lang) if tr("payroll.lock", self.lang) != "payroll.lock" else "Abschließen")
-        self.btn_unlock= QPushButton(tr("payroll.unlock", self.lang) if tr("payroll.unlock", self.lang) != "payroll.unlock" else "Re-Open")
-        self.edit_reason = QLineEdit(); self.edit_reason.setPlaceholderText(tr("payroll.reason_prompt", self.lang) if tr("payroll.reason_prompt", self.lang) != "payroll.reason_prompt" else "Begründung für Re-Open (optional)")
+        self.btn_pdf = QPushButton(
+            tr("payroll.pdf", self.lang) if tr("payroll.pdf", self.lang) != "payroll.pdf" else "PDF Lohnschein")
+        self.btn_xlsx = QPushButton(
+            tr("payroll.xlsx", self.lang) if tr("payroll.xlsx", self.lang) != "payroll.xlsx" else "Excel Lohnschein")
+        self.btn_lock = QPushButton(
+            tr("payroll.lock", self.lang) if tr("payroll.lock", self.lang) != "payroll.lock" else "Abschließen")
+        self.btn_unlock = QPushButton(
+            tr("payroll.unlock", self.lang) if tr("payroll.unlock", self.lang) != "payroll.unlock" else "Re-Open")
+        self.edit_reason = QLineEdit();
+        self.edit_reason.setPlaceholderText(tr("payroll.reason_prompt", self.lang) if tr("payroll.reason_prompt",
+                                                                                         self.lang) != "payroll.reason_prompt" else "Begründung für Re-Open (optional)")
         for w in (self.btn_pdf, self.btn_xlsx, self.btn_lock, self.btn_unlock, self.edit_reason):
             actions.addWidget(w)
         layout.addLayout(actions)
@@ -207,37 +237,49 @@ class PayrollDialog(QDialog):
     # ----------------------- Recalc -----------------------
     def _recalc(self):
         uid = self._target_user()
-        y1, m1 = self._ym_from(); y2, m2 = self._ym_to()
+        y1, m1 = self._ym_from();
+        y2, m2 = self._ym_to()
 
-        hours_total = 0.0; entries_total = 0; gross_total = 0.0; net_total = 0.0
+        hours_total = 0.0;
+        entries_total = 0;
+        gross_total = 0.0;
+        net_total = 0.0
         breakdown = {}
 
         y, m = y1, m1
         with self.session_factory() as s:
             while (y < y2) or (y == y2 and m <= m2):
                 run = recalc_and_save(s, uid, y, m)
-                hours_total   += float(run.hours_total or 0.0)
+                hours_total += float(run.hours_total or 0.0)
                 entries_total += int(run.entries_count or 0)
-                gross_total   += float(run.gross_total or 0.0)
-                net_total     += float(run.net_total or 0.0)
+                gross_total += float(run.gross_total or 0.0)
+                net_total += float(run.net_total or 0.0)
                 bd = json.loads(run.type_breakdown_json or "{}")
                 for typ, vals in bd.items():
-                    b = breakdown.setdefault(typ, {"hours":0.0,"count":0})
-                    b["hours"] += float(vals.get("hours",0.0)); b["count"] += int(vals.get("count",0))
-                if m == 12: y, m = y+1, 1
-                else: m += 1
+                    b = breakdown.setdefault(typ, {"hours": 0.0, "count": 0})
+                    b["hours"] += float(vals.get("hours", 0.0));
+                    b["count"] += int(vals.get("count", 0))
+                if m == 12:
+                    y, m = y + 1, 1
+                else:
+                    m += 1
 
-        self.lbl_hours.setText(f"{tr('payroll.hours_total', self.lang) if tr('payroll.hours_total', self.lang) != 'payroll.hours_total' else 'Stunden Total'}: {hours_total:.2f}")
-        self.lbl_entries.setText(f"{tr('payroll.entries', self.lang) if tr('payroll.entries', self.lang) != 'payroll.entries' else 'Einträge'}: {entries_total}")
-        self.lbl_gross.setText(f"{tr('payroll.gross', self.lang) if tr('payroll.gross', self.lang) != 'payroll.gross' else 'Bruttolohn'}: CHF {gross_total:.2f}")
-        self.lbl_net.setText(f"{tr('payroll.net', self.lang) if tr('payroll.net', self.lang) != 'payroll.net' else 'Nettolohn'}: CHF {net_total:.2f}")
+        self.lbl_hours.setText(
+            f"{tr('payroll.hours_total', self.lang) if tr('payroll.hours_total', self.lang) != 'payroll.hours_total' else 'Stunden Total'}: {hours_total:.2f}")
+        self.lbl_entries.setText(
+            f"{tr('payroll.entries', self.lang) if tr('payroll.entries', self.lang) != 'payroll.entries' else 'Einträge'}: {entries_total}")
+        self.lbl_gross.setText(
+            f"{tr('payroll.gross', self.lang) if tr('payroll.gross', self.lang) != 'payroll.gross' else 'Bruttolohn'}: CHF {gross_total:.2f}")
+        self.lbl_net.setText(
+            f"{tr('payroll.net', self.lang) if tr('payroll.net', self.lang) != 'payroll.net' else 'Nettolohn'}: CHF {net_total:.2f}")
 
         self.tbl_bd.setRowCount(0)
         for typ, vals in breakdown.items():
-            r=self.tbl_bd.rowCount(); self.tbl_bd.insertRow(r)
-            self.tbl_bd.setItem(r,0,QTableWidgetItem(_type_label(self.lang, typ)))
-            self.tbl_bd.setItem(r,1,QTableWidgetItem(f"{float(vals.get('hours',0.0)):.2f}"))
-            self.tbl_bd.setItem(r,2,QTableWidgetItem(str(int(vals.get('count',0)))))
+            r = self.tbl_bd.rowCount();
+            self.tbl_bd.insertRow(r)
+            self.tbl_bd.setItem(r, 0, QTableWidgetItem(_type_label(self.lang, typ)))
+            self.tbl_bd.setItem(r, 1, QTableWidgetItem(f"{float(vals.get('hours', 0.0)):.2f}"))
+            self.tbl_bd.setItem(r, 2, QTableWidgetItem(str(int(vals.get('count', 0)))))
 
         # Status aktualisieren
         self._status_last_action = None
@@ -247,7 +289,8 @@ class PayrollDialog(QDialog):
     # ----------------------- Export -----------------------
     def _export_pdf(self):
         uid = self._target_user()
-        y1, m1 = self._ym_from(); y2, m2 = self._ym_to()
+        y1, m1 = self._ym_from();
+        y2, m2 = self._ym_to()
         fname = self._export_filename(uid, "pdf")
         path, _ = QFileDialog.getSaveFileName(self, "PDF speichern", fname, "PDF (*.pdf)")
         if not path: return
@@ -262,7 +305,8 @@ class PayrollDialog(QDialog):
 
     def _export_xlsx(self):
         uid = self._target_user()
-        y1, m1 = self._ym_from(); y2, m2 = self._ym_to()
+        y1, m1 = self._ym_from();
+        y2, m2 = self._ym_to()
         fname = self._export_filename(uid, "xlsx")
         path, _ = QFileDialog.getSaveFileName(self, "Excel speichern", fname, "Excel (*.xlsx)")
         if not path: return
@@ -286,10 +330,13 @@ class PayrollDialog(QDialog):
         with self.session_factory() as s:
             lock_run(s, uid, y1, m1, by_user_id=self.current_user_id)
         start, end = self._period_dates()
-        QMessageBox.information(self, "Abrechnung", f"Sie haben von {start.isoformat()} bis {end.isoformat()} erfolgreich abgeschlossen.\n(Hinweis: technisch wird nur der Startmonat abgeschlossen.)")
+        QMessageBox.information(self, "Abrechnung",
+                                f"Sie haben von {start.isoformat()} bis {end.isoformat()} erfolgreich abgeschlossen.\n(Hinweis: technisch wird nur der Startmonat abgeschlossen.)")
         self._status_last_action = "lock"
         self._update_status_frame()
-        log_activity(self.current_user_id, "payroll.lock", {"user_id": uid, "from": start.isoformat(), "to": end.isoformat(), "locked_month": f"{y1}-{m1:02d}"})
+        log_activity(self.current_user_id, "payroll.lock",
+                     {"user_id": uid, "from": start.isoformat(), "to": end.isoformat(),
+                      "locked_month": f"{y1}-{m1:02d}"})
         self._recalc()
 
     def _unlock(self):
@@ -303,8 +350,11 @@ class PayrollDialog(QDialog):
         with self.session_factory() as s:
             unlock_run(s, uid, y1, m1, reason or "")
         start, end = self._period_dates()
-        QMessageBox.information(self, "Abrechnung", f"Sie haben von {start.isoformat()} bis {end.isoformat()} erfolgreich wieder geöffnet.\n(Hinweis: technisch wird nur der Startmonat geöffnet.)")
+        QMessageBox.information(self, "Abrechnung",
+                                f"Sie haben von {start.isoformat()} bis {end.isoformat()} erfolgreich wieder geöffnet.\n(Hinweis: technisch wird nur der Startmonat geöffnet.)")
         self._status_last_action = "reopen"
         self._update_status_frame()
-        log_activity(self.current_user_id, "payroll.unlock", {"user_id": uid, "from": start.isoformat(), "to": end.isoformat(), "unlocked_month": f"{y1}-{m1:02d}", "reason": reason})
+        log_activity(self.current_user_id, "payroll.unlock",
+                     {"user_id": uid, "from": start.isoformat(), "to": end.isoformat(),
+                      "unlocked_month": f"{y1}-{m1:02d}", "reason": reason})
         self._recalc()

@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from core.models import User, UserProfile
+
 
 def user_label(user: User, profile: UserProfile | None) -> str:
     role = (user.role or "").upper() if user else ""

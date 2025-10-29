@@ -1,9 +1,11 @@
-
 from __future__ import annotations
+
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QMessageBox, QCheckBox
 )
+
 from languages import tr
+
 
 class AdminPasswordDialog(QDialog):
     def __init__(self, lang: str = "de", parent=None):
@@ -17,8 +19,10 @@ class AdminPasswordDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
-        self.edit_new = QLineEdit(); self.edit_new.setEchoMode(QLineEdit.Password)
-        self.edit_confirm = QLineEdit(); self.edit_confirm.setEchoMode(QLineEdit.Password)
+        self.edit_new = QLineEdit();
+        self.edit_new.setEchoMode(QLineEdit.Password)
+        self.edit_confirm = QLineEdit();
+        self.edit_confirm.setEchoMode(QLineEdit.Password)
         self.chk_must_change = QCheckBox("Nutzer muss Passwort beim nächsten Login ändern")
         self.chk_must_change.setChecked(True)
 

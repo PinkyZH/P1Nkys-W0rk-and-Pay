@@ -1,15 +1,17 @@
 from __future__ import annotations
+
+from PySide6.QtCore import QTime
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QFormLayout, QGroupBox,
     QLabel, QCheckBox, QDoubleSpinBox, QTimeEdit, QPushButton, QMessageBox, QWidget
 )
-from PySide6.QtCore import QTime
 from PySide6.QtWidgets import QHBoxLayout as HBox
-from languages import tr
 from sqlalchemy.orm import sessionmaker
 
 # Regeln laden/speichern
-from core.services.rules_service import current_rules, save_rules, is_enabled
+from core.services.rules_service import current_rules, is_enabled
+from languages import tr
+
 
 class RulesDialog(QDialog):
     """
@@ -19,11 +21,13 @@ class RulesDialog(QDialog):
       - Feiertag (voll)
     Anzeigen: Prozent + von/bis (für Überstunden) + berechnete Dauer (h)
     """
+
     def __init__(self, session_factory: sessionmaker, lang: str = "de", parent=None):
         super().__init__(parent)
         self.session_factory = session_factory
         self.lang = lang
-        self.setWindowTitle(tr("rules.title", self.lang) if tr("rules.title", self.lang) != "rules.title" else "Zuschlagsregeln")
+        self.setWindowTitle(
+            tr("rules.title", self.lang) if tr("rules.title", self.lang) != "rules.title" else "Zuschlagsregeln")
         self.setSizeGripEnabled(True)
         self._build()
         self.adjustSize()
@@ -33,7 +37,8 @@ class RulesDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Zuschläge global aktiv?
-        self.chk_enabled = QCheckBox(tr("rules.enabled", self.lang) if tr("rules.enabled", self.lang) != "rules.enabled" else "Zuschläge aktivieren")
+        self.chk_enabled = QCheckBox(tr("rules.enabled", self.lang) if tr("rules.enabled",
+                                                                          self.lang) != "rules.enabled" else "Zuschläge aktivieren")
         self.chk_enabled.setChecked(bool(is_enabled()))
         layout.addWidget(self.chk_enabled)
 
@@ -41,26 +46,36 @@ class RulesDialog(QDialog):
         night = rules.get("NIGHT", {})
 
         # --- ÜBERSTUNDEN (anteilig) – ersetzt NIGHT ---
-        grp_n = QGroupBox(tr("rules.overtime.title", self.lang) if tr("rules.overtime.title", self.lang) != "rules.overtime.title" else "Überstunden (anteilig)")
+        grp_n = QGroupBox(tr("rules.overtime.title", self.lang) if tr("rules.overtime.title",
+                                                                      self.lang) != "rules.overtime.title" else "Überstunden (anteilig)")
         g1 = QGridLayout()
 
-        self.n_chk = QCheckBox(tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
+        self.n_chk = QCheckBox(
+            tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
         self.n_chk.setChecked(night.get("enabled", True))
 
-        self.n_pct = QDoubleSpinBox(); self.n_pct.setRange(0, 500); self.n_pct.setDecimals(2)
+        self.n_pct = QDoubleSpinBox();
+        self.n_pct.setRange(0, 500);
+        self.n_pct.setDecimals(2)
         self.n_pct.setValue(float(night.get("percent", 25.0)))
 
         # Standardstart 16:30, Ende 06:00 (über Mitternacht möglich)
-        self.n_from = QTimeEdit(); self.n_from.setDisplayFormat("HH:mm")
-        self.n_to   = QTimeEdit(); self.n_to.setDisplayFormat("HH:mm")
+        self.n_from = QTimeEdit();
+        self.n_from.setDisplayFormat("HH:mm")
+        self.n_to = QTimeEdit();
+        self.n_to.setDisplayFormat("HH:mm")
         self.n_from.setTime(QTime.fromString(night.get("from_time", "16:30"), "HH:mm"))
         self.n_to.setTime(QTime.fromString(night.get("to_time", "06:00"), "HH:mm"))
 
         # 'nächster Tag' neben 'bis'
-        bis_cell = QWidget(); bis_row = HBox(bis_cell); bis_row.setContentsMargins(0,0,0,0)
-        self.chk_nextday = QCheckBox(tr("rules.next_day", self.lang) if tr("rules.next_day", self.lang) != "rules.next_day" else "nächster Tag")
-        self.chk_nextday.setToolTip(tr("rules.next_day_tip", self.lang) if tr("rules.next_day_tip", self.lang) != "rules.next_day_tip"
-                                    else "Wenn aktiv: 'bis' liegt am Folgetag (über Mitternacht).")
+        bis_cell = QWidget();
+        bis_row = HBox(bis_cell);
+        bis_row.setContentsMargins(0, 0, 0, 0)
+        self.chk_nextday = QCheckBox(
+            tr("rules.next_day", self.lang) if tr("rules.next_day", self.lang) != "rules.next_day" else "nächster Tag")
+        self.chk_nextday.setToolTip(
+            tr("rules.next_day_tip", self.lang) if tr("rules.next_day_tip", self.lang) != "rules.next_day_tip"
+            else "Wenn aktiv: 'bis' liegt am Folgetag (über Mitternacht).")
         bis_row.addWidget(self.n_to, 0)
         bis_row.addWidget(self.chk_nextday, 0)
 
@@ -68,25 +83,33 @@ class RulesDialog(QDialog):
         self.lbl_n_duration = QLabel("-")
 
         g1.addWidget(self.n_chk, 0, 0)
-        g1.addWidget(QLabel("%"), 0, 1); g1.addWidget(self.n_pct, 0, 2)
+        g1.addWidget(QLabel("%"), 0, 1);
+        g1.addWidget(self.n_pct, 0, 2)
 
-        g1.addWidget(QLabel(tr("rules.from", self.lang) if tr("rules.from", self.lang) != "rules.from" else "von"), 1, 0)
+        g1.addWidget(QLabel(tr("rules.from", self.lang) if tr("rules.from", self.lang) != "rules.from" else "von"), 1,
+                     0)
         g1.addWidget(self.n_from, 1, 1)
         g1.addWidget(QLabel(tr("rules.to", self.lang) if tr("rules.to", self.lang) != "rules.to" else "bis"), 1, 2)
         g1.addWidget(bis_cell, 1, 3)
 
-        g1.addWidget(QLabel(tr("rules.duration", self.lang) if tr("rules.duration", self.lang) != "rules.duration" else "Dauer (h)"), 2, 0)
+        g1.addWidget(QLabel(
+            tr("rules.duration", self.lang) if tr("rules.duration", self.lang) != "rules.duration" else "Dauer (h)"), 2,
+                     0)
         g1.addWidget(self.lbl_n_duration, 2, 1, 1, 3)
 
         grp_n.setLayout(g1)
         layout.addWidget(grp_n)
 
         # --- Wochenende (voll) ---
-        grp_w = QGroupBox(tr("rules.weekend.title", self.lang) if tr("rules.weekend.title", self.lang) != "rules.weekend.title" else "Wochenende (voll)")
+        grp_w = QGroupBox(tr("rules.weekend.title", self.lang) if tr("rules.weekend.title",
+                                                                     self.lang) != "rules.weekend.title" else "Wochenende (voll)")
         g2 = QFormLayout()
-        self.w_chk = QCheckBox(tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
+        self.w_chk = QCheckBox(
+            tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
         self.w_chk.setChecked(rules.get("WEEKEND", {}).get("enabled", True))
-        self.w_pct = QDoubleSpinBox(); self.w_pct.setRange(0, 500); self.w_pct.setDecimals(2)
+        self.w_pct = QDoubleSpinBox();
+        self.w_pct.setRange(0, 500);
+        self.w_pct.setDecimals(2)
         self.w_pct.setValue(float(rules.get("WEEKEND", {}).get("percent", 50.0)))
         g2.addRow(self.w_chk)
         g2.addRow(QLabel("%"), self.w_pct)
@@ -94,11 +117,15 @@ class RulesDialog(QDialog):
         layout.addWidget(grp_w)
 
         # --- Feiertag (voll) ---
-        grp_h = QGroupBox(tr("rules.holiday.title", self.lang) if tr("rules.holiday.title", self.lang) != "rules.holiday.title" else "Feiertag (voll)")
+        grp_h = QGroupBox(tr("rules.holiday.title", self.lang) if tr("rules.holiday.title",
+                                                                     self.lang) != "rules.holiday.title" else "Feiertag (voll)")
         g3 = QFormLayout()
-        self.h_chk = QCheckBox(tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
+        self.h_chk = QCheckBox(
+            tr("rules.active", self.lang) if tr("rules.active", self.lang) != "rules.active" else "aktiv")
         self.h_chk.setChecked(rules.get("HOLIDAY", {}).get("enabled", True))
-        self.h_pct = QDoubleSpinBox(); self.h_pct.setRange(0, 500); self.h_pct.setDecimals(2)
+        self.h_pct = QDoubleSpinBox();
+        self.h_pct.setRange(0, 500);
+        self.h_pct.setDecimals(2)
         self.h_pct.setValue(float(rules.get("HOLIDAY", {}).get("percent", 100.0)))
         g3.addRow(self.h_chk)
         g3.addRow(QLabel("%"), self.h_pct)
@@ -107,9 +134,13 @@ class RulesDialog(QDialog):
 
         # Buttons
         row = QHBoxLayout()
-        btn_save = QPushButton(tr("dialogs.common.save", self.lang) if tr("dialogs.common.save", self.lang) != "dialogs.common.save" else "Speichern")
-        btn_cancel = QPushButton(tr("dialogs.common.cancel", self.lang) if tr("dialogs.common.cancel", self.lang) != "dialogs.common.cancel" else "Abbrechen")
-        row.addStretch(1); row.addWidget(btn_save); row.addWidget(btn_cancel)
+        btn_save = QPushButton(tr("dialogs.common.save", self.lang) if tr("dialogs.common.save",
+                                                                          self.lang) != "dialogs.common.save" else "Speichern")
+        btn_cancel = QPushButton(tr("dialogs.common.cancel", self.lang) if tr("dialogs.common.cancel",
+                                                                              self.lang) != "dialogs.common.cancel" else "Abbrechen")
+        row.addStretch(1);
+        row.addWidget(btn_save);
+        row.addWidget(btn_cancel)
         layout.addLayout(row)
 
         # --- initiale Werte für 'nächster Tag' & Dauer (h) ---
@@ -208,8 +239,10 @@ class RulesDialog(QDialog):
 
             if ok:
                 QMessageBox.information(self,
-                                        tr("rules.title", self.lang) if tr("rules.title", self.lang) != "rules.title" else "Zuschlagsregeln",
-                                        tr("dialogs.common.saved", self.lang) if tr("dialogs.common.saved", self.lang) != "dialogs.common.saved" else "Gespeichert.")
+                                        tr("rules.title", self.lang) if tr("rules.title",
+                                                                           self.lang) != "rules.title" else "Zuschlagsregeln",
+                                        tr("dialogs.common.saved", self.lang) if tr("dialogs.common.saved",
+                                                                                    self.lang) != "dialogs.common.saved" else "Gespeichert.")
                 self.accept()
             else:
                 import json
@@ -221,5 +254,6 @@ class RulesDialog(QDialog):
 
         except Exception as ex:
             QMessageBox.critical(self,
-                                 tr("rules.title", self.lang) if tr("rules.title", self.lang) != "rules.title" else "Zuschlagsregeln",
+                                 tr("rules.title", self.lang) if tr("rules.title",
+                                                                    self.lang) != "rules.title" else "Zuschlagsregeln",
                                  f"Speichern fehlgeschlagen: {ex}")

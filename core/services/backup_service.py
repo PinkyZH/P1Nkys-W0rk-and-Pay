@@ -1,10 +1,15 @@
 from __future__ import annotations
-import os, zipfile, shutil, time
+
+import shutil
+import time
+import zipfile
 from pathlib import Path
 from typing import Optional
-from sqlalchemy.engine import Engine
+
 from sqlalchemy.orm import Session
+
 from .audit_service import log_action
+
 
 # DB-URL ist in app.py als sqlite:///workpay.db – wir leiten den Pfad ab
 def _sqlite_path_from_url(db_url: str) -> Path:
@@ -14,7 +19,9 @@ def _sqlite_path_from_url(db_url: str) -> Path:
     p = db_url.replace("sqlite:///", "", 1)
     return Path(p).resolve()
 
-def create_backup(session: Session, db_url: str, avatars_dir: Path, config_files: list[Path], out_zip: Path, user_id: Optional[int]) -> Path:
+
+def create_backup(session: Session, db_url: str, avatars_dir: Path, config_files: list[Path], out_zip: Path,
+                  user_id: Optional[int]) -> Path:
     out_zip = out_zip.resolve()
     out_zip.parent.mkdir(parents=True, exist_ok=True)
     db_file = _sqlite_path_from_url(db_url)
@@ -35,6 +42,7 @@ def create_backup(session: Session, db_url: str, avatars_dir: Path, config_files
         z.writestr("MANIFEST.txt", manifest)
     log_action(session, user_id, "BACKUP", "System", after={"file": str(out_zip)})
     return out_zip
+
 
 def restore_backup(session: Session, db_url: str, avatars_dir: Path, zip_file: Path, user_id: Optional[int]) -> None:
     """Achtung: überschreibt DB & Avatars aus ZIP."""

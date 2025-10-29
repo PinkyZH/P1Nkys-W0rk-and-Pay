@@ -1,6 +1,7 @@
-
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 
 @dataclass
 class WageParams:
@@ -13,8 +14,10 @@ class WageParams:
     nbu_pct: float
     ktg_pct: float
 
+
 def _round2(x: float) -> float:
     return round(float(x or 0.0) + 1e-9, 2)
+
 
 def compute_effective_hourly(params: WageParams) -> tuple[float, float]:
     """Return (effective_gross_per_hour, effective_net_per_hour).
@@ -30,5 +33,5 @@ def compute_effective_hourly(params: WageParams) -> tuple[float, float]:
     wage_part = base + vac + hol + th13
     gross = wage_part + float(params.expenses_per_hour or 0.0)
     total_pct = (params.ahv_pct or 0.0) + (params.nbu_pct or 0.0) + (params.ktg_pct or 0.0)
-    net = (wage_part * (1.0 - total_pct/100.0)) + float(params.expenses_per_hour or 0.0)
+    net = (wage_part * (1.0 - total_pct / 100.0)) + float(params.expenses_per_hour or 0.0)
     return _round2(gross), _round2(net)

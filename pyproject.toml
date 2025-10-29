@@ -1,0 +1,125 @@
+
+
+
+# content below this line added by briefcase convert
+# This project was generated with 0.3.25 using template: https://github.com/beeware/briefcase-template @ v0.3.25
+[tool.briefcase]
+project_name = "P1nkyW0rkpy"
+bundle = "ch.p1nkyw0rkpy.rapport"
+version = "4.0"
+url = "https://rapport.gasic.ch"
+license.file = "LICENSE"
+author = "PinkyZH"
+author_email = "110202238+PinkyZH@users.noreply.github.com"
+
+[tool.briefcase.app.p1nkyw0rkpy]
+formal_name = "P1nkyW0rkpy"
+description = "Ist ein Stundenlohnrechner."
+long_description = """Ist ein Stundenlohnrechner."""
+sources = [
+    "src/p1nkyw0rkpy",
+]
+test_sources = [
+    "tests",
+]
+
+requires = [
+    "PySide6-Essentials>=6.6",
+	"PyQt5==5.15.10",
+    "SQLAlchemy>=2.0",
+    "argon2-cffi>=23.1",
+    "Babel>=2.14",
+    "python-dateutil>=2.8",
+    "Pillow>=10.0",
+    "reportlab>=4.0",
+    "openpyxl>=3.1",
+    "matplotlib>=3.9",
+    "cryptography>=42.0",
+]
+test_requires = [
+    # Add your cross-platform test requirements here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.macOS]
+universal_build = true
+requires = [
+    # Add your macOS-specific app requirements here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux]
+requires = [
+    # Add your Linux-specific app requirements here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux.system.debian]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux.system.rhel]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux.system.suse]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux.system.arch]
+system_requires = [
+    # Add any system packages needed at build the app here
+]
+
+system_runtime_requires = [
+    # Add any system packages needed at runtime here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.linux.flatpak]
+flatpak_runtime = "org.freedesktop.Platform"
+flatpak_runtime_version = "24.08"
+flatpak_sdk = "org.freedesktop.Sdk"
+
+[tool.briefcase.app.p1nkyw0rkpy.windows]
+requires = [
+    "PySide6-Essentials>=6.6",
+    "SQLAlchemy>=2.0",
+    "argon2-cffi>=23.1",
+    "Babel>=2.14",
+    "python-dateutil>=2.8",
+    "Pillow>=10.0",
+    "reportlab>=4.0",
+    "openpyxl>=3.1",
+    "matplotlib>=3.9",
+    "cryptography>=42.0",
+]
+
+# Mobile deployments
+[tool.briefcase.app.p1nkyw0rkpy.iOS]
+requires = [
+    # Add your iOS-specific app requirements here
+]
+
+[tool.briefcase.app.p1nkyw0rkpy.android]
+requires = [
+    # Add your Android-specific app requirements here
+]
+
+# Web deployments
+[tool.briefcase.app.p1nkyw0rkpy.web]
+requires = [
+    # Add your web-specific app requirements here
+]
+

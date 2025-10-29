@@ -1,15 +1,19 @@
 from __future__ import annotations
-from typing import Optional, Any, Dict
+
 import json
+from typing import Optional, Any
+
 from sqlalchemy.orm import Session
-from sqlalchemy import select
-from ..models import AuditLog, User
+
+from ..models import AuditLog
+
 
 def _to_json(data: Any) -> str | None:
     try:
         return json.dumps(data, ensure_ascii=False, default=str) if data is not None else None
     except Exception:
         return None
+
 
 def log_action(session: Session, user_id: Optional[int], action: str,
                entity: str, entity_id: Optional[str] = None,

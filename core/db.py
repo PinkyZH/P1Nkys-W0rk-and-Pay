@@ -1,15 +1,19 @@
 from __future__ import annotations
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.engine import Engine
+
 from sqlalchemy import text
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
+
+
 def _has_column(conn, table: str, column: str) -> bool:
     try:
         res = conn.exec_driver_sql(f"PRAGMA table_info({table})").all()
     except Exception:
         return False
     return any(r[1] == column for r in res)
+
+
 def init_db(engine):
     # Tabellen anlegen (für neue DBs)
     Base.metadata.create_all(engine)
@@ -26,17 +30,17 @@ def init_db(engine):
     with engine.begin() as conn:
         # bereits vorhandene (deine bisherigen) Lohnspalten – ggf. nachrüsten
         for tbl, col, ddl in [
-            ("user_profiles","hourly_brutto","FLOAT"),
-            ("user_profiles","vac_pct","FLOAT"),
-            ("user_profiles","holiday_pct","FLOAT"),
-            ("user_profiles","thirteenth_pct","FLOAT"),
-            ("user_profiles","expenses_per_hour","FLOAT"),
-            ("user_profiles","ahv_pct","FLOAT"),
-            ("user_profiles","nbu_pct","FLOAT"),
-            ("user_profiles","ktg_pct","FLOAT"),
-            ("user_profiles","bvg_pct","FLOAT"),
-            ("user_profiles","lgav_fixed_monthly","FLOAT"),
-            ("user_profiles","weekly_hours","FLOAT"),
+            ("user_profiles", "hourly_brutto", "FLOAT"),
+            ("user_profiles", "vac_pct", "FLOAT"),
+            ("user_profiles", "holiday_pct", "FLOAT"),
+            ("user_profiles", "thirteenth_pct", "FLOAT"),
+            ("user_profiles", "expenses_per_hour", "FLOAT"),
+            ("user_profiles", "ahv_pct", "FLOAT"),
+            ("user_profiles", "nbu_pct", "FLOAT"),
+            ("user_profiles", "ktg_pct", "FLOAT"),
+            ("user_profiles", "bvg_pct", "FLOAT"),
+            ("user_profiles", "lgav_fixed_monthly", "FLOAT"),
+            ("user_profiles", "weekly_hours", "FLOAT"),
         ]:
             if not _has_column(conn, tbl, col):
                 conn.exec_driver_sql(f"ALTER TABLE {tbl} ADD COLUMN {col} {ddl}")
@@ -49,11 +53,14 @@ def init_db(engine):
         if _has_column(conn, "user_profiles", "hourly_rate") and _has_column(conn, "user_profiles", "hourly_brutto"):
             conn.exec_driver_sql("UPDATE user_profiles SET hourly_brutto = COALESCE(hourly_brutto, hourly_rate)")
 
+
 def get_engine(url="sqlite:///workpay.db"):
     return create_engine(url, echo=False, future=True)
 
+
 def get_session_factory(engine):
     return sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
 
 def _ensure_sqlite_columns(engine):
     """Fügt fehlende Spalten in bestehenden SQLite-Tabellen hinzu (leichtgewichtig, ohne Alembic)."""

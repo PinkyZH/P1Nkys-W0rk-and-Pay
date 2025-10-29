@@ -1,7 +1,9 @@
 # workpay/ui/window_flags.py
 from __future__ import annotations
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
+
 
 def apply_window_controls(w: QWidget, *, size_grip: bool = True, maximized: bool | None = None) -> None:
     """
@@ -17,8 +19,10 @@ def apply_window_controls(w: QWidget, *, size_grip: bool = True, maximized: bool
     flags |= Qt.Window
     w.setWindowFlags(flags)
     if size_grip and hasattr(w, "setSizeGripEnabled"):
-        try: w.setSizeGripEnabled(True)
-        except Exception: pass
+        try:
+            w.setSizeGripEnabled(True)
+        except Exception:
+            pass
     if maximized is True:
         w.showMaximized()
     elif maximized is False:

@@ -1,14 +1,15 @@
 from __future__ import annotations
-from typing import Dict, Tuple
-from datetime import date, timedelta
 
+from datetime import date, timedelta
+from typing import Dict, Tuple
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QFormLayout, QLineEdit,
-    QSpinBox, QDoubleSpinBox, QPushButton, QGroupBox, QGridLayout, QWidget
+    QSpinBox, QDoubleSpinBox, QPushButton, QGroupBox, QGridLayout
 )
-from PySide6.QtCore import Qt, QDate
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
 from core.models import UserProfile
 from core.services.wage_service import _load_global_defaults
@@ -33,6 +34,7 @@ class WagePreviewDialog(QDialog):
     Lohnvorschau mit Szenario-Vergleich (IST vs. WAS-WÄRE-WENN)
     und Lohnprognosen (diese/kommende Woche, dieser/nächster Monat).
     """
+
     def __init__(self, session_factory: sessionmaker, user_id: int, lang: str = "de", parent=None):
         super().__init__(parent)
         self.session_factory = session_factory
@@ -167,7 +169,7 @@ class WagePreviewDialog(QDialog):
             1, alignment=Qt.AlignCenter)
         g.addWidget(QLabel(
             tr("wprev.col_if", self.lang) if tr("wprev.col_if", self.lang) != "wprev.col_if" else "Was-wäre-wenn"), 0,
-                    2, alignment=Qt.AlignCenter)
+            2, alignment=Qt.AlignCenter)
 
         rows = [
             ("wprev.gph", "Brutto/Std"),
@@ -321,6 +323,7 @@ class WagePreviewDialog(QDialog):
             w.valueChanged.connect(self._recalc_all)
         for w in (self.q_ist_wage, self.q_if_wage, self.q_ist_hours, self.q_if_hours):
             w.valueChanged.connect(self._recalc_quick)
+
     # ------------- Daten laden -------------
     def _load_effective_params(self):
         dfl = _load_global_defaults()
@@ -377,9 +380,14 @@ class WagePreviewDialog(QDialog):
     def _effective_rates_from(self, params: Dict[str, float]) -> Tuple[float, float]:
         """Gibt (brutto/Std, netto/Std) zurück – inkl. Zuschläge/Abzüge & Spesen."""
         hb = params["hourly_brutto"]
-        vac = params["vac_pct"]; hol = params["holiday_pct"]; m13 = params["thirteenth_pct"]
+        vac = params["vac_pct"];
+        hol = params["holiday_pct"];
+        m13 = params["thirteenth_pct"]
         exp = params["expenses_per_hour"]
-        ahv = params["ahv_pct"]; nbu = params["nbu_pct"]; ktg = params["ktg_pct"]; bvg = params.get("bvg_pct", 0.0)
+        ahv = params["ahv_pct"];
+        nbu = params["nbu_pct"];
+        ktg = params["ktg_pct"];
+        bvg = params.get("bvg_pct", 0.0)
         gph = hb * (1 + (vac + hol + m13) / 100.0) + exp
         nph = hb * (1 + (vac + hol + m13) / 100.0) * (1 - (ahv + nbu + ktg + bvg) / 100.0) + exp
         return gph, nph
@@ -403,15 +411,19 @@ class WagePreviewDialog(QDialog):
         gpm_if = gph_if * (174.0 + extra)
         npm_if = nph_if * (174.0 + extra)
 
-        self.out["wprev.gph"][0].setText(f"{gph_ist:.2f}");  self.out["wprev.gph"][1].setText(f"{gph_if:.2f}")
-        self.out["wprev.nph"][0].setText(f"{nph_ist:.2f}");  self.out["wprev.nph"][1].setText(f"{nph_if:.2f}")
-        self.out["wprev.gpm"][0].setText(f"{gpm_ist:.2f}");  self.out["wprev.gpm"][1].setText(f"{gpm_if:.2f}")
-        self.out["wprev.npm"][0].setText(f"{npm_ist:.2f}");  self.out["wprev.npm"][1].setText(f"{npm_if:.2f}")
+        self.out["wprev.gph"][0].setText(f"{gph_ist:.2f}");
+        self.out["wprev.gph"][1].setText(f"{gph_if:.2f}")
+        self.out["wprev.nph"][0].setText(f"{nph_ist:.2f}");
+        self.out["wprev.nph"][1].setText(f"{nph_if:.2f}")
+        self.out["wprev.gpm"][0].setText(f"{gpm_ist:.2f}");
+        self.out["wprev.gpm"][1].setText(f"{gpm_if:.2f}")
+        self.out["wprev.npm"][0].setText(f"{npm_ist:.2f}");
+        self.out["wprev.npm"][1].setText(f"{npm_if:.2f}")
         self.out["wprev.delta_m"][0].setText("—")
         self.out["wprev.delta_m"][1].setText(f"{(gpm_if - npm_if):.2f}")
 
         self._recalc_forecasts(gph_ist, nph_ist)  # Prognosen
-        self._recalc_quick()                      # Schnell-Vergleich
+        self._recalc_quick()  # Schnell-Vergleich
 
     def _recalc_quick(self):
         # IST
@@ -419,46 +431,58 @@ class WagePreviewDialog(QDialog):
         ist_params["hourly_brutto"] = float(self.q_ist_wage.value())
         gph_ist, nph_ist = self._effective_rates_from(ist_params)
         h_ist = float(self.q_ist_hours.value())
-        g_ist = gph_ist * h_ist; n_ist = nph_ist * h_ist
+        g_ist = gph_ist * h_ist;
+        n_ist = nph_ist * h_ist
 
         # IF
         if_params = dict(self._ist_params)
         if_params["hourly_brutto"] = float(self.q_if_wage.value())
         gph_if, nph_if = self._effective_rates_from(if_params)
         h_if = float(self.q_if_hours.value())
-        g_if = gph_if * h_if; n_if = nph_if * h_if
+        g_if = gph_if * h_if;
+        n_if = nph_if * h_if
 
-        self.q_ist_g.setText(f"{g_ist:.2f}"); self.q_if_g.setText(f"{g_if:.2f}")
-        self.q_ist_n.setText(f"{n_ist:.2f}"); self.q_if_n.setText(f"{n_if:.2f}")
+        self.q_ist_g.setText(f"{g_ist:.2f}");
+        self.q_if_g.setText(f"{g_if:.2f}")
+        self.q_ist_n.setText(f"{n_ist:.2f}");
+        self.q_if_n.setText(f"{n_if:.2f}")
 
     # ----- Forecasts -----
     def _recalc_forecasts(self, gph: float, nph: float):
         today = date.today()
-        start_w = today - timedelta(days=today.weekday()); end_w = start_w + timedelta(days=6)
-        start_w2 = end_w + timedelta(days=1);               end_w2 = start_w2 + timedelta(days=6)
+        start_w = today - timedelta(days=today.weekday());
+        end_w = start_w + timedelta(days=6)
+        start_w2 = end_w + timedelta(days=1);
+        end_w2 = start_w2 + timedelta(days=6)
         start_m = today.replace(day=1)
-        end_m   = (date(today.year + 1, 1, 1) - timedelta(days=1)) if today.month == 12 else (date(today.year, today.month + 1, 1) - timedelta(days=1))
+        end_m = (date(today.year + 1, 1, 1) - timedelta(days=1)) if today.month == 12 else (
+                    date(today.year, today.month + 1, 1) - timedelta(days=1))
         nm_start = end_m + timedelta(days=1)
-        nm_end   = (date(nm_start.year + 1, 1, 1) - timedelta(days=1)) if nm_start.month == 12 else (date(nm_start.year, nm_start.month + 1, 1) - timedelta(days=1))
+        nm_end = (date(nm_start.year + 1, 1, 1) - timedelta(days=1)) if nm_start.month == 12 else (
+                    date(nm_start.year, nm_start.month + 1, 1) - timedelta(days=1))
 
         def period_total(d1: date, d2: date) -> Tuple[float, float]:
             with self.session_factory() as s:
                 entries = list_entries_by_range(s, self.user_id, d1, d2)
             work_hours = sum(float(e.hours or 0.0) for e in entries if (e.entry_type or "").upper() == "WORK")
-            sick_days  = sum(1 for e in entries if (e.entry_type or "").upper() in ("SICK", "ACCIDENT"))
+            sick_days = sum(1 for e in entries if (e.entry_type or "").upper() in ("SICK", "ACCIDENT"))
             gross = gph * work_hours + SICK_BENEFIT_FACTOR * SICK_BENEFIT_HOURS * gph * sick_days
-            net   = nph * work_hours + SICK_BENEFIT_FACTOR * SICK_BENEFIT_HOURS * nph * sick_days
+            net = nph * work_hours + SICK_BENEFIT_FACTOR * SICK_BENEFIT_HOURS * nph * sick_days
             return gross, net
 
-        g_tw, n_tw = period_total(start_w,  end_w)
+        g_tw, n_tw = period_total(start_w, end_w)
         g_nw, n_nw = period_total(start_w2, end_w2)
-        g_tm, n_tm = period_total(start_m,  end_m)
+        g_tm, n_tm = period_total(start_m, end_m)
         g_nm, n_nm = period_total(nm_start, nm_end)
 
-        self.fc_tw_g.setText(f"{g_tw:.2f}"); self.fc_tw_n.setText(f"{n_tw:.2f}")
-        self.fc_nw_g.setText(f"{g_nw:.2f}"); self.fc_nw_n.setText(f"{n_nw:.2f}")
-        self.fc_tm_g.setText(f"{g_tm:.2f}"); self.fc_tm_n.setText(f"{n_tm:.2f}")
-        self.fc_nm_g.setText(f"{g_nm:.2f}"); self.fc_nm_n.setText(f"{n_nm:.2f}")
+        self.fc_tw_g.setText(f"{g_tw:.2f}");
+        self.fc_tw_n.setText(f"{n_tw:.2f}")
+        self.fc_nw_g.setText(f"{g_nw:.2f}");
+        self.fc_nw_n.setText(f"{n_nw:.2f}")
+        self.fc_tm_g.setText(f"{g_tm:.2f}");
+        self.fc_tm_n.setText(f"{n_tm:.2f}")
+        self.fc_nm_g.setText(f"{g_nm:.2f}");
+        self.fc_nm_n.setText(f"{n_nm:.2f}")
 
     def _load_hours_from_month(self):
         # Nur tatsächliche Arbeitsstunden (ENTRY_TYPE == WORK) zählen.
