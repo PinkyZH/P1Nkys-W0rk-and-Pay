@@ -29,38 +29,67 @@ o	Colored buttons & context menus
 
 •	💾 Works completely offline
 
+
 🖥️ Requirements
 •	OS: Windows 10 / 11
+
 •	Python: ≥ 3.10
+
 •	Dependencies:
+
 •	pip install -r requirements.txt
 
+
 🚀 Installation
+
 Option 1 – Developer Mode
+
 git clone https://github.com/PinkyZH/P1NkyS-W0rk-Pay.git
+
 cd P1NkyS-W0rk-Pay
+
 python app.py
+
 Option 2 – Stand-alone EXE (PyInstaller)
+
 pyinstaller --noconfirm --windowed ^
+  
   --add-data "src/p1nkyw0rkpy/languages.py;p1nkyw0rkpy" ^
+  
   --add-data "assets/icons;assets/icons" ^
+  
   src/p1nkyw0rkpy/__main__.py
+
 Option 3 – Briefcase Packaging
+
 briefcase create windows
+
 briefcase build windows
+
 briefcase run windows
+
 briefcase package windows
 
+
 🧾 Release Notes (4.0)
+
 •	🔥 Removed: Absence & Notification modules
+
 •	🛡️ Added: AES-GCM encryption for DB fields
+
 •	📅 Added: Payroll preview with quick comparison & month filter
+
 •	📊 Added: Monthly PDF/XLSX/CSV export
+
 •	🎨 Improved: Icons, colors, and context menus
+
 •	🧩 Fixed: User Admin ID offset & password reset
 
+
 📖 License
+
 Released under the MIT License.
+
 
 👤 Author
 PinkyZH
