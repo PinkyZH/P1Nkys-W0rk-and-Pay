@@ -4,17 +4,29 @@ About the Project
 P1Nky$ W0rk & P@y 4.0 is an offline desktop application for managing work hours, wages, and user profiles. Built with Python 3 / PySide6, it’s fully self-contained and ensures maximum privacy and simplicity — ideal for workplaces, rehabilitation, or correctional environments without internet access.
 
 ⚙️ Core Features
+
 •	📅 Calendar view (daily, weekly, monthly)
+
 •	➕ Fast entry for work / sick / accident hours
+
 •	💰 Payroll preview with vacation / holiday / 13th month pay calculation
+
 •	📊 Export to PDF / Excel / CSV with month in filename
+
 •	🔁 Import CSV with header aliases (date = Datum)
+
 •	🧑‍💼 User Administration
+
 o	Create, edit, delete users
+
 o	Password reset with secure hash
+
 o	Colored buttons & context menus
+
 •	🔒 AES-GCM encryption for sensitive fields
+
 •	🌐 Multi-language support (German / English via languages.py)
+
 •	💾 Works completely offline
 
 🖥️ Requirements
