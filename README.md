@@ -1,4 +1,4 @@
-🧮 P1Nky$ W0rk & P@y 4.0 – Your smart Work & Pay Tracker\
+# 🧮 P1Nky$ W0rk & P@y 4.0 – Your smart Work & Pay Tracker\
 
 About the Project<br/>
 P1Nky$ W0rk & P@y 4.0 is an offline desktop application for managing work hours, wages, and user profiles. Built with Python 3 / PySide6, it’s fully self-contained and ensures maximum privacy and simplicity — ideal for workplaces, rehabilitation, or correctional environments without internet access.
@@ -25,21 +25,21 @@ o	Colored buttons & context menus<br/>
 \
 🚀 Installation<br/>
 Option 1 – Developer Mode<br/>
-git clone https://github.com/PinkyZH/P1NkyS-W0rk-Pay.git<br/>
-cd P1NkyS-W0rk-Pay<br/>
-python app.py<br/>
+`git clone https://github.com/PinkyZH/P1NkyS-W0rk-Pay.git`<br/>
+`cd P1NkyS-W0rk-Pay`<br/>
+`python app.py`<br/>
 \
 Option 2 – Stand-alone EXE (PyInstaller)<br/>
-pyinstaller --noconfirm --windowed ^ <br/>
-  --add-data "src/p1nkyw0rkpy/languages.py;p1nkyw0rkpy" ^ <br/>
-  --add-data "assets/icons;assets/icons" ^ <br/>
-  src/p1nkyw0rkpy/__main__.py <br/>
+pyinstaller --noconfirm --windowed ^` <br/>
+  `--add-data "src/p1nkyw0rkpy/languages.py;p1nkyw0rkpy" ^` <br/>
+  `--add-data "assets/icons;assets/icons" ^` <br/>
+  `src/p1nkyw0rkpy/__main__.py` <br/>
 \
-Option 3 – Briefcase Packaging'<br/>
-'briefcase create windows'<br/>
-'briefcase build windows'<br/>
-'briefcase run windows'<br/>
-'briefcase package windows'<br/>
+Option 3 – Briefcase Packaging<br/>
+`briefcase create windows`<br/>
+`briefcase build windows`<br/>
+`briefcase run windows`<br/>
+`briefcase package windows`<br/>
 \
 🧾 Release Notes (4.0)<br/>
 •	🔥 Removed: Absence & Notification modules<br/>
