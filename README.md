@@ -50,12 +50,12 @@ briefcase package windows<br/>
 •	🧩 Fixed: User Admin ID offset & password reset<br/>
 \
 📖 License<br/>
-Released under the MIT License.
+Released under the MIT License.<br/>
 \
 👤 Author<br/>
 PinkyZH<br/>
 📧 n/a<br/>
 \
 🇨🇭 Switzerland<br/>
-GitHub: github.com/PinkyZH/ 
+GitHub: github.com/PinkyZH/ <br/>
 
