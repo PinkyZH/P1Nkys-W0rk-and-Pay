@@ -35,11 +35,11 @@ pyinstaller --noconfirm --windowed ^ <br/>
   --add-data "assets/icons;assets/icons" ^ <br/>
   src/p1nkyw0rkpy/__main__.py <br/>
 \
-Option 3 – Briefcase Packaging<br/>
-briefcase create windows<br/>
-briefcase build windows<br/>
-briefcase run windows<br/>
-briefcase package windows<br/>
+Option 3 – Briefcase Packaging'<br/>
+'briefcase create windows'<br/>
+'briefcase build windows'<br/>
+'briefcase run windows'<br/>
+'briefcase package windows'<br/>
 \
 🧾 Release Notes (4.0)<br/>
 •	🔥 Removed: Absence & Notification modules<br/>
