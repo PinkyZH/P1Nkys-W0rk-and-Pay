@@ -37,10 +37,7 @@ After first installation, an administrator account is created automatically:<br/
 `python app.py`<br/>
 \
 **Option 2** – Stand-alone EXE (PyInstaller)<br/>
-`pyinstaller --noconfirm --windowed`<br/>
-  ` --add-data "src/p1nkyw0rkpy/languages.py;p1nkyw0rkpy" `<br/>
-  ` --add-data "assets/icons;assets/icons" `<br/>
-  ` src/p1nkyw0rkpy/__main__.py`<br/>
+`pyinstaller --noconfirm --windowed --add-data "src/p1nkyw0rkpy/languages.py;p1nkyw0rkpy" --add-data "assets/icons;assets/icons" src/p1nkyw0rkpy/__main__.py`<br/>
 \
 **Option 3** – Briefcase Packaging<br/>
 ` briefcase create windows `<br/>
