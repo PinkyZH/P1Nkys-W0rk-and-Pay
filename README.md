@@ -1,4 +1,4 @@
-# 🧮 P1Nky$ W0rk & P@y 4.0 – Your smart Work & Pay Tracker\
+# 🧮 P1Nky$ W0rk & P@y 4.0 – Your smart Work & Pay Tracker
 
 **About the Project** <br/>
 P1Nky$ W0rk & P@y 4.0 is an offline desktop application for managing work hours, wages, and user profiles. Built with Python 3 / PySide6, it’s fully self-contained and ensures maximum privacy and simplicity — ideal for workplaces, rehabilitation, or correctional environments without internet access.
@@ -63,7 +63,6 @@ Released under the MIT License.<br/>
 PinkyZH<br/>
 📧 n/a<br/>
 \
-
 🇨🇭 Switzerland<br/>
 **GitHub:** github.com/PinkyZH/ <br/>
 
